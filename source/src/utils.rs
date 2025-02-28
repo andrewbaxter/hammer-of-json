@@ -180,6 +180,10 @@ pub fn search(
     handle_end_found_arr: &mut impl FnMut() -> SearchRes,
     handle_end_root: impl FnOnce() -> SearchRes,
 ) {
+    fn nil_handle_end() -> SearchRes {
+        unreachable!();
+    }
+
     if root && at == needle {
         match handle_end_root() {
             SearchRes::Replace(value) => *at = value,
@@ -207,7 +211,7 @@ pub fn search(
                             &*needle,
                             &mut *handle_end_found_obj,
                             &mut *handle_end_found_arr,
-                            || unreachable!(),
+                            nil_handle_end,
                         );
                         i += 1;
                     }
@@ -231,7 +235,7 @@ pub fn search(
                             &*needle,
                             &mut *handle_end_found_obj,
                             &mut *handle_end_found_arr,
-                            || unreachable!(),
+                            nil_handle_end,
                         );
                     }
                 }
