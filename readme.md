@@ -2,16 +2,51 @@ This is a collection of tools for common json document manipulations.  It operat
 
 Use it like:
 ```
-$ joh set --in-place ./manifest.json global.meta f:./global_meta.json
-$ joh search-set --in-place ./some.json '"_ARTIFACT_PLACEHOLDER"' '"/tmp/build/artifact.tar.gz"'
-$ joh merge base.json layer1.json layer2.json > combined.json
-$ joh validate-json-shchema combined.json
+$ hoj set --in-place ./manifest.json global.meta f:./global_meta.json
+$ hoj search-set --in-place ./some.json '"_ARTIFACT_PLACEHOLDER"' '"/tmp/build/artifact.tar.gz"'
+$ hoj merge base.json layer1.json layer2.json > combined.json
+$ hoj validate-json-shchema combined.json
 ```
 
 The command line help provides the best overview:
 
 ```
-$ joh -h
+$ hoj -h
+Usage: hoj SOURCE COMMAND [ ...FLAGS]
+
+    SOURCE: <PATH> | - | <JSON>    Source JSON file
+    COMMAND: COMMAND
+    [--in-place]                   Modify source in-place
+    [-i]                           (synonym for `--in-place`)
+    [--unquote]                    If the result is a string value, output as an unquoted (non-json) string
+    [-u]                           (synonym for `--unquote`)
+    [--format FORMAT]              Output format, defaults to `pretty`
+    [-f FORMAT]                    (synonym for `--format`)
+    [--missing-ok]                 If a value referred to by a path, values to replace, or data to subtract is missing, don't 
+                                   abort (treat as ok).
+    [-m]                           (synonym for `--missing-ok`)
+
+COMMAND: array | get | set | delete | keep | search-set | search-delete | intersect | subtract | merge | validate-json-schema
+
+    array ...                      Create an array from arguments.  Arguments are parsed as JSON, if that fails they're turned
+                                   into JSON strings. To make values into strings explicitly, add quotes. (ex, in bash: `'"123"'`)
+    get ...                        Get the subtree at a path, outputting the subtree
+    set ...                        Replace/insert a subtree at a path, outputting the modified data
+    delete ...                     Remove the subtrees at paths, returning the remaining data
+    keep ...                       Remove the subtrees at paths, returning just the removed data
+    search-set ...                 Search for matching values and replace them with a new value
+    search-delete ...              Search for matching values and delete them
+    intersect ...                  Return the tree common to all trees. I.e. for `{"a": 1, "b": 2}` and `{"b": 2, "c": 3}`
+                                   return `{"b": 2}`
+    subtract ...                   Return the tree that's not present in any of these files
+    merge ...                      Add the data in each file, sequentually. Objects are recursed and merged per-key, while all other 
+                                   values are replaced
+    validate-json-schema ...       Validate a file against a schema, either internal (via a root `"$schema"` key) or external
+
+FORMAT: compact | pretty
+
+    compact
+    pretty
 ```
 
 # Conventions

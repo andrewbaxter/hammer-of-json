@@ -48,6 +48,7 @@ struct ValidateJsonSchemaCommand {
 }
 
 #[derive(Aargvark)]
+#[vark(break_help)]
 enum Command {
     /// Create an array from arguments.  Arguments are parsed as JSON, if that fails
     /// they're turned into JSON strings. To make values into strings explicitly, add
@@ -84,8 +85,8 @@ enum Format {
     Pretty,
 }
 
+/// This is a collection of tools for common json document manipulations.
 #[derive(Aargvark)]
-#[vark(break_help)]
 struct Args {
     /// Source JSON file
     source: JsonValue,
