@@ -1,0 +1,11 @@
+[package]
+name = "jsonhammer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aargvark = { version = "0.7", features = ["serde_json"] }
+flowcontrol = "0.2.3"
+jsonschema = "0.29.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value", "arbitrary_precision"] }
