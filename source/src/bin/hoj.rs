@@ -1,27 +1,27 @@
-pub mod utils;
-pub mod get;
-pub mod set;
-pub mod keep;
-pub mod delete;
-pub mod search_set;
-pub mod search_delete;
-pub mod intersect;
-pub mod subtract;
-pub mod merge;
-
 use {
     aargvark::{
         vark,
         Aargvark,
     },
     flowcontrol::superif,
+    hammer_of_json::{
+        delete::delete,
+        get::get,
+        intersect::intersect,
+        keep::keep,
+        merge::merge,
+        search_delete::search_delete,
+        search_set::search_set,
+        set::set,
+        subtract::subtract,
+        utils::{
+            JsonPath,
+            JsonValue,
+        },
+    },
     std::{
         fs::write,
         process::exit,
-    },
-    utils::{
-        JsonPath,
-        JsonValue,
     },
 };
 
@@ -147,43 +147,43 @@ fn main1() -> Result<(), String> {
             output(serde_json::Value::Array(out))?;
         },
         Command::Get(args) => {
-            let at = get::get(&mut source, &args, missing_ok)?.unwrap_or(serde_json::Value::Null);
+            let at = get(&mut source, &args, missing_ok)?.unwrap_or(serde_json::Value::Null);
             output(at)?;
         },
         Command::Set(args) => {
-            set::set(&mut source, &args.path, &args.data.0.value, missing_ok)?;
+            set(&mut source, &args.path, &args.data.0.value, missing_ok)?;
             output(source)?;
         },
         Command::Delete(args) => {
             for path in args {
-                delete::delete(&mut source, &path, missing_ok)?;
+                delete(&mut source, &path, missing_ok)?;
             }
             output(source)?;
         },
         Command::Keep(args) => {
             let mut out = None;
             for path in args {
-                keep::keep(&mut source, &mut out, &path, missing_ok)?;
+                keep(&mut source, &mut out, &path, missing_ok)?;
             }
             output(out.unwrap_or(serde_json::Value::Null))?;
         },
         Command::SearchSet(args) => {
-            search_set::search_set(&mut source, &args.needle.0.value, &args.data.0.value);
+            search_set(&mut source, &args.needle.0.value, &args.data.0.value);
             output(source)?;
         },
         Command::SearchDelete(args) => {
-            search_delete::search_delete(&mut source, &args.needle.0.value);
+            search_delete(&mut source, &args.needle.0.value);
             output(source)?;
         },
         Command::Intersect(args) => {
             for other in args {
-                intersect::intersect(&mut source, &other.0.value);
+                intersect(&mut source, &other.0.value);
             }
             output(source)?;
         },
         Command::Subtract(args) => {
             for (layer_index, arg) in args.iter().enumerate() {
-                if let Err(e) = subtract::subtract(&mut source, &arg.0.value, root_args.missing_ok.is_some()) {
+                if let Err(e) = subtract(&mut source, &arg.0.value, root_args.missing_ok.is_some()) {
                     return Err(format!("Failed to subtract layer {}:\n{}", layer_index, e));
                 }
             }
@@ -192,7 +192,7 @@ fn main1() -> Result<(), String> {
         Command::Merge(args) => {
             let mut source = source;
             for v in args {
-                merge::merge(&mut source, v.0.value);
+                merge(&mut source, v.0.value);
             }
             output(source)?;
         },
@@ -200,7 +200,7 @@ fn main1() -> Result<(), String> {
             let schema = if let Some(schema) = args.external {
                 schema.0.value
             } else if let Some(serde_json::Value::String(addr)) =
-                get::get(&mut source, &JsonPath(vec!["$schema".to_string()]), true)? {
+                get(&mut source, &JsonPath(vec!["$schema".to_string()]), true)? {
                 if addr.starts_with("https://") {
                     todo!();
                 } else if addr.starts_with("http:///") {
