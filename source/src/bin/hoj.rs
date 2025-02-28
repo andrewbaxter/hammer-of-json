@@ -90,13 +90,17 @@ struct Args {
     /// Source JSON file
     source: JsonValue,
     /// Modify source in-place
+    #[vark(flag = "--in-place", flag = "-i")]
     in_place: Option<()>,
     /// If the result is a string value, output as an unquoted (non-json) string
+    #[vark(flag = "--unquote", flag = "-u")]
     unquote: Option<()>,
     /// Output format, defaults to `pretty`
+    #[vark(flag = "--format", flag = "-f")]
     format: Option<Format>,
     /// If a value referred to by a path, values to replace, or data to subtract is
     /// missing, don't abort (treat as ok).
+    #[vark(flag = "--missing-ok", flag = "-m")]
     missing_ok: Option<()>,
     command: Command,
 }
