@@ -3,46 +3,43 @@ fn recurse<
 >(
     errors: &mut Vec<String>,
     path: &mut Vec<&'a str>,
-    source: &mut serde_json::Value,
-    other: &'a serde_json::Value,
+    source: &mut serde_json::Map<String, serde_json::Value>,
+    other: &'a serde_json::Map<String, serde_json::Value>,
     missing_ok: bool,
 ) {
-    match (source, other) {
-        (serde_json::Value::Object(source), serde_json::Value::Object(other)) => {
-            for (k, other_val) in other {
-                path.push(k);
-                if let Some(source_val) = source.get_mut(k) {
-                    if source_val == other_val { } else {
-                        recurse(errors, path, source_val, other_val, missing_ok);
-                        path.pop();
-                    }
-                } else {
-                    if missing_ok {
-                        // nop
-                    } else {
-                        errors.push(
-                            format!("Trying to subtract path [{:?}] but no value exists at that path", path),
-                        );
-                    }
-                }
+    for (k, other_val) in other {
+        path.push(k);
+        if let Some(source_val) = source.get_mut(k) {
+            if source_val == other_val {
                 source.remove(k);
+            } else if let (serde_json::Value::Object(source), serde_json::Value::Object(other)) =
+                (source_val, other_val) {
+                recurse(errors, path, source, other, missing_ok);
+            } else {
+                // nop
             }
-        },
-        _ => {
-            // no match, no subtraction
-        },
+        } else {
+            if missing_ok {
+                // nop
+            } else {
+                errors.push(format!("Trying to subtract path [{:?}] but no value exists at that path", path));
+            }
+        }
+        path.pop();
     }
 }
 
 pub fn subtract(source: &mut serde_json::Value, other: &serde_json::Value, missing_ok: bool) -> Result<(), String> {
+    let mut layer_errors = vec![];
     if source == other {
         *source = serde_json::Value::Null;
-    } else {
-        let mut layer_errors = vec![];
+    } else if let (serde_json::Value::Object(source), serde_json::Value::Object(other)) = (source, other) {
         recurse(&mut layer_errors, &mut vec![], source, other, missing_ok);
-        if !layer_errors.is_empty() {
-            return Err(layer_errors.iter().map(|e| format!("- {}", e)).collect::<Vec<_>>().join("\n"));
-        }
+    } else {
+        // nop
+    }
+    if !layer_errors.is_empty() {
+        return Err(layer_errors.iter().map(|e| format!("- {}", e)).collect::<Vec<_>>().join("\n"));
     }
     return Ok(());
 }

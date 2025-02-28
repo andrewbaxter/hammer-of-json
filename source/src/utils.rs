@@ -72,6 +72,12 @@ pub enum AtPathEarlyRes<T> {
     Err,
 }
 
+pub enum AtPathEndRes<T> {
+    Return(T),
+    SetAndReturn(serde_json::Value, T),
+    Err,
+}
+
 pub fn at_path<
     T,
 >(
@@ -79,7 +85,7 @@ pub fn at_path<
     mut at: &mut serde_json::Value,
     mut handle_early_missing: impl FnMut() -> AtPathEarlyRes<T>,
     mut handle_early_untraversible: impl FnMut() -> AtPathEarlyRes<T>,
-    handle_end_missing: impl FnOnce(&mut serde_json::Map<String, serde_json::Value>, &str) -> AtPathEarlyRes<T>,
+    handle_end_missing: impl FnOnce(&mut serde_json::Map<String, serde_json::Value>, &str) -> AtPathEndRes<T>,
     handle_end_found: impl FnOnce(&mut serde_json::Map<String, serde_json::Value>, &str) -> Result<T, String>,
     handle_end_root: impl FnOnce(&mut serde_json::Value) -> Result<T, String>,
 ) -> Result<T, String> {
@@ -120,13 +126,14 @@ pub fn at_path<
                     return handle_end_found(map, seg);
                 } else {
                     match handle_end_missing(map, seg) {
-                        AtPathEarlyRes::Return(v) => {
+                        AtPathEndRes::Return(v) => {
                             return Ok(v);
                         },
-                        AtPathEarlyRes::SetAndContinue => {
-                            unreachable!();
+                        AtPathEndRes::SetAndReturn(v, ret) => {
+                            map.insert(seg.to_string(), v);
+                            return Ok(ret);
                         },
-                        AtPathEarlyRes::Err => {
+                        AtPathEndRes::Err => {
                             return Err(
                                 format!(
                                     "Encountered object value at {:?} but the key [{:?}] is missing",

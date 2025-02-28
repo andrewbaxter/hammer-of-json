@@ -1,10 +1,11 @@
 use {
     crate::{
-        set::set,
         merge::merge,
+        set::set,
         utils::{
             at_path,
             AtPathEarlyRes,
+            AtPathEndRes,
             JsonPath,
         },
     },
@@ -29,8 +30,8 @@ pub fn keep(
             false => AtPathEarlyRes::Err,
         },
         |_, _| match missing_ok {
-            true => AtPathEarlyRes::Return(()),
-            false => AtPathEarlyRes::Err,
+            true => AtPathEndRes::Return(()),
+            false => AtPathEndRes::Err,
         },
         |parent, key| {
             let mut temp = serde_json::Value::Object(serde_json::Map::new());

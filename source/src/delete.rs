@@ -2,6 +2,7 @@ use {
     crate::utils::{
         at_path,
         AtPathEarlyRes,
+        AtPathEndRes,
         JsonPath,
     },
 };
@@ -20,8 +21,8 @@ pub fn delete(source: &mut serde_json::Value, path: &JsonPath, missing_ok: bool)
             false => AtPathEarlyRes::Err,
         },
         |_, _| match missing_ok {
-            true => AtPathEarlyRes::Return(()),
-            false => AtPathEarlyRes::Err,
+            true => AtPathEndRes::Return(()),
+            false => AtPathEndRes::Err,
         },
         |parent, key| {
             parent.remove(key);

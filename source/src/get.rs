@@ -2,6 +2,7 @@ use {
     crate::utils::{
         at_path,
         AtPathEarlyRes,
+        AtPathEndRes,
         JsonPath,
     },
 };
@@ -25,8 +26,8 @@ pub fn get(
             false => AtPathEarlyRes::Err,
         },
         |_, _| match missing_ok {
-            true => AtPathEarlyRes::Return(None),
-            false => AtPathEarlyRes::Err,
+            true => AtPathEndRes::Return(None),
+            false => AtPathEndRes::Err,
         },
         |parent, key| {
             return Ok(Some(parent.get(key).unwrap().clone()));
