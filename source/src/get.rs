@@ -1,18 +1,17 @@
 use {
-    crate::utils::{
-        at_path,
-        AtPathEarlyRes,
-        AtPathEndRes,
-        JsonPath,
+    crate::{
+        supervalue::Supervalue,
+        supervalue_path::DataPath,
+        utils::{
+            at_path,
+            AtPathEarlyRes,
+            AtPathEndRes,
+        },
     },
 };
 
 /// Can only error if `!missing_ok`.
-pub fn get(
-    root: &mut serde_json::Value,
-    path: &JsonPath,
-    missing_ok: bool,
-) -> Result<Option<serde_json::Value>, String> {
+pub fn get(root: &mut Supervalue, path: &DataPath, missing_ok: bool) -> Result<Option<Supervalue>, String> {
     return Ok(at_path(
         //. .
         path,
@@ -30,7 +29,7 @@ pub fn get(
             false => AtPathEndRes::Err,
         },
         |parent, key| {
-            return Ok(Some(parent.get(key).unwrap().clone()));
+            return Ok(Some(parent.value.get(key).unwrap().clone()));
         },
         |v| {
             return Ok(Some(v.clone()));
@@ -42,13 +41,16 @@ pub fn get(
 mod test {
     use {
         super::get,
-        crate::utils::JsonPath,
+        crate::{
+            supervalue::Supervalue,
+            supervalue_path::DataPath,
+        },
         serde_json::json,
     };
 
     #[test]
     fn base() {
-        let mut source = json!({
+        let mut source = Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
@@ -57,11 +59,11 @@ mod test {
                 "e": true,
             },
             "f": false,
-        });
+        }));
         let found =
-            get(&mut source, &JsonPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]), true)
+            get(&mut source, &DataPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]), true)
                 .unwrap()
                 .unwrap();
-        assert_eq!(found, json!(4));
+        assert_eq!(found, Supervalue::from(json!(4)));
     }
 }

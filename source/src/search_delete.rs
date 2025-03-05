@@ -1,11 +1,14 @@
 use {
-    crate::utils::{
-        search,
-        SearchRes,
+    crate::{
+        supervalue::Supervalue,
+        utils::{
+            search,
+            SearchRes,
+        },
     },
 };
 
-pub fn search_delete(source: &mut serde_json::Value, needle: &serde_json::Value) {
+pub fn search_delete(source: &mut Supervalue, needle: &Supervalue) {
     search(true, source, needle, &mut || SearchRes::Delete, &mut || SearchRes::Delete, || SearchRes::Delete);
 }
 
@@ -13,12 +16,13 @@ pub fn search_delete(source: &mut serde_json::Value, needle: &serde_json::Value)
 mod test {
     use {
         super::search_delete,
+        crate::supervalue::Supervalue,
         serde_json::json,
     };
 
     #[test]
     fn base() {
-        let mut source = json!({
+        let mut source = Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
@@ -27,9 +31,9 @@ mod test {
                 "e": true,
             },
             "f": false,
-        });
-        search_delete(&mut source, &json!("hello"));
-        assert_eq!(source, json!({
+        }));
+        search_delete(&mut source, &Supervalue::from(json!("hello")));
+        assert_eq!(source, Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
@@ -37,6 +41,6 @@ mod test {
                 "e": true,
             },
             "f": false,
-        }));
+        })));
     }
 }

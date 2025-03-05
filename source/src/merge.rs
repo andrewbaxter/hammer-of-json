@@ -1,11 +1,15 @@
-pub fn merge(dest: &mut serde_json::Value, other: serde_json::Value) {
+use {
+    crate::supervalue::Supervalue,
+};
+
+pub fn merge(dest: &mut Supervalue, other: Supervalue) {
     match (dest, other) {
-        (serde_json::Value::Object(dest), serde_json::Value::Object(other)) => {
-            for (k, other) in other {
-                if let Some(dest) = dest.get_mut(&k) {
+        (Supervalue::Map(dest), Supervalue::Map(other)) => {
+            for (k, other) in other.value {
+                if let Some(dest) = dest.value.get_mut(&k) {
                     merge(dest, other);
                 } else {
-                    dest.insert(k, other);
+                    dest.value.insert(k, other);
                 }
             }
         },
@@ -19,12 +23,13 @@ pub fn merge(dest: &mut serde_json::Value, other: serde_json::Value) {
 mod test {
     use {
         super::merge,
+        crate::supervalue::Supervalue,
         serde_json::json,
     };
 
     #[test]
     fn base() {
-        let mut source = json!({
+        let mut source = Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
@@ -36,8 +41,8 @@ mod test {
                 "e": true,
             },
             "f": false,
-        });
-        merge(&mut source, json!({
+        }));
+        merge(&mut source, Supervalue::from(json!({
             "b": 44,
             "a": {
                 "b": {
@@ -48,8 +53,8 @@ mod test {
                     "q": 12,
                 }
             }
-        }));
-        assert_eq!(source, json!({
+        })));
+        assert_eq!(source, Supervalue::from(json!({
             "b": 44,
             "a": {
                 "b": {
@@ -62,6 +67,6 @@ mod test {
                 }
             },
             "f": false,
-        }));
+        })));
     }
 }

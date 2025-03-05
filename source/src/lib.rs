@@ -1,4 +1,6 @@
 pub mod utils;
+pub mod supervalue;
+pub mod supervalue_path;
 pub mod get;
 pub mod set;
 pub mod keep;

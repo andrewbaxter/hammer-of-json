@@ -1,11 +1,14 @@
 use {
-    crate::utils::{
-        search,
-        SearchRes,
+    crate::{
+        supervalue::Supervalue,
+        utils::{
+            search,
+            SearchRes,
+        },
     },
 };
 
-pub fn search_set(source: &mut serde_json::Value, needle: &serde_json::Value, data: &serde_json::Value) {
+pub fn search_set(source: &mut Supervalue, needle: &Supervalue, data: &Supervalue) {
     search(
         true,
         source,
@@ -20,12 +23,13 @@ pub fn search_set(source: &mut serde_json::Value, needle: &serde_json::Value, da
 mod test {
     use {
         super::search_set,
+        crate::supervalue::Supervalue,
         serde_json::json,
     };
 
     #[test]
     fn base() {
-        let mut source = json!({
+        let mut source = Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
@@ -34,9 +38,9 @@ mod test {
                 "e": true,
             },
             "f": false,
-        });
-        search_set(&mut source, &json!("hello"), &json!("goodbye"));
-        assert_eq!(source, json!({
+        }));
+        search_set(&mut source, &Supervalue::from(json!("hello")), &Supervalue::from(json!("goodbye")));
+        assert_eq!(source, Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
@@ -45,6 +49,6 @@ mod test {
                 "e": true,
             },
             "f": false,
-        }));
+        })));
     }
 }

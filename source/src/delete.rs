@@ -1,13 +1,16 @@
 use {
-    crate::utils::{
-        at_path,
-        AtPathEarlyRes,
-        AtPathEndRes,
-        JsonPath,
+    crate::{
+        supervalue::Supervalue,
+        supervalue_path::DataPath,
+        utils::{
+            at_path,
+            AtPathEarlyRes,
+            AtPathEndRes,
+        },
     },
 };
 
-pub fn delete(source: &mut serde_json::Value, path: &JsonPath, missing_ok: bool) -> Result<(), String> {
+pub fn delete(source: &mut Supervalue, path: &DataPath, missing_ok: bool) -> Result<(), String> {
     at_path(
         //. .
         &path,
@@ -25,11 +28,11 @@ pub fn delete(source: &mut serde_json::Value, path: &JsonPath, missing_ok: bool)
             false => AtPathEndRes::Err,
         },
         |parent, key| {
-            parent.remove(key);
+            parent.value.remove(key);
             return Ok(());
         },
         |root| {
-            *root = serde_json::Value::Null;
+            *root = Supervalue::Null;
             return Ok(());
         },
     )?;
@@ -40,13 +43,16 @@ pub fn delete(source: &mut serde_json::Value, path: &JsonPath, missing_ok: bool)
 mod test {
     use {
         super::delete,
-        crate::utils::JsonPath,
+        crate::{
+            supervalue::Supervalue,
+            supervalue_path::DataPath,
+        },
         serde_json::json,
     };
 
     #[test]
     fn base() {
-        let mut source = json!({
+        let mut source = Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
@@ -55,9 +61,9 @@ mod test {
                 "e": true,
             },
             "f": false,
-        });
-        delete(&mut source, &JsonPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]), true).unwrap();
-        assert_eq!(source, json!({
+        }));
+        delete(&mut source, &DataPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]), true).unwrap();
+        assert_eq!(source, Supervalue::from(json!({
             "a": {
                 "b": {
                     "d": "hello",
@@ -65,6 +71,6 @@ mod test {
                 "e": true,
             },
             "f": false,
-        }));
+        })));
     }
 }

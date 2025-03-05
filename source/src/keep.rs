@@ -2,19 +2,20 @@ use {
     crate::{
         merge::merge,
         set::set,
+        supervalue::Supervalue,
+        supervalue_path::DataPath,
         utils::{
             at_path,
             AtPathEarlyRes,
             AtPathEndRes,
-            JsonPath,
         },
     },
 };
 
 pub fn keep(
-    source: &mut serde_json::Value,
-    out: &mut Option<serde_json::Value>,
-    path: &JsonPath,
+    source: &mut Supervalue,
+    out: &mut Option<Supervalue>,
+    path: &DataPath,
     missing_ok: bool,
 ) -> Result<(), String> {
     at_path(
@@ -34,9 +35,9 @@ pub fn keep(
             false => AtPathEndRes::Err,
         },
         |parent, key| {
-            let mut temp = serde_json::Value::Object(serde_json::Map::new());
-            set(&mut temp, &path, &parent.remove(key).unwrap(), missing_ok)?;
-            merge(out.get_or_insert_with(|| serde_json::Value::Object(Default::default())), temp);
+            let mut temp = Supervalue::Map(Default::default());
+            set(&mut temp, &path, &parent.value.remove(key).unwrap(), missing_ok)?;
+            merge(out.get_or_insert_with(|| Supervalue::Map(Default::default())), temp);
             return Ok(());
         },
         |_root| {
@@ -51,13 +52,16 @@ pub fn keep(
 mod test {
     use {
         super::keep,
-        crate::utils::JsonPath,
+        crate::{
+            supervalue::Supervalue,
+            supervalue_path::DataPath,
+        },
         serde_json::json,
     };
 
     #[test]
     fn base() {
-        let mut source = json!({
+        let mut source = Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
@@ -66,25 +70,25 @@ mod test {
                 "e": true,
             },
             "f": false,
-        });
-        let mut out = Some(json!({
+        }));
+        let mut out = Some(Supervalue::from(json!({
             "a": {
                 "e": true,
             }
-        }));
+        })));
         keep(
             &mut source,
             &mut out,
-            &JsonPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]),
+            &DataPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]),
             true,
         ).unwrap();
-        assert_eq!(out.unwrap(), json!({
+        assert_eq!(out.unwrap(), Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
                 },
                 "e": true,
             }
-        }));
+        })));
     }
 }

@@ -1,70 +1,12 @@
 use {
-    aargvark::traits_impls::{
-        AargvarkFromStr,
-        AargvarkJson,
+    crate::{
+        supervalue::{
+            Supervalue,
+            SupervalueMap,
+        },
+        supervalue_path::DataPath,
     },
 };
-
-pub struct JsonPath(pub Vec<String>);
-
-impl AargvarkFromStr for JsonPath {
-    fn from_str(s: &str) -> Result<Self, String> {
-        if s.starts_with("[") {
-            return Ok(
-                JsonPath(
-                    serde_json::from_str(
-                        s,
-                    ).map_err(|e| format!("Error parsing path as JSON array of strings: {}", e))?,
-                ),
-            );
-        } else {
-            return Ok(
-                JsonPath(s.trim_end_matches('.').split(".").map(|x| x.to_string()).collect::<Vec<_>>()),
-            );
-        }
-    }
-
-    fn build_help_pattern(_state: &mut aargvark::help::HelpState) -> aargvark::help::HelpPattern {
-        return aargvark::help::HelpPattern(vec![aargvark::help::HelpPatternElement::Type(format!("PATH.TO.DATA"))]);
-    }
-}
-
-pub struct JsonValue(pub AargvarkJson<serde_json::Value>);
-
-impl AargvarkFromStr for JsonValue {
-    fn from_str(s: &str) -> Result<Self, String> {
-        if let Some(path) = s.strip_prefix("f:") {
-            return Ok(JsonValue(AargvarkJson::<serde_json::Value>::from_str(path)?));
-        } else {
-            match serde_json::from_str(&s) {
-                Ok(v) => {
-                    return Ok(JsonValue(AargvarkJson {
-                        value: v,
-                        source: aargvark::traits_impls::Source::Stdin,
-                    }));
-                },
-                Err(e) => {
-                    return Err(e.to_string());
-                },
-            }
-        }
-    }
-
-    fn build_help_pattern(state: &mut aargvark::help::HelpState) -> aargvark::help::HelpPattern {
-        return aargvark::help::HelpPattern(
-            vec![
-                aargvark::help::HelpPatternElement::Variant(
-                    vec![
-                        AargvarkJson::<serde_json::Value>::build_help_pattern(state),
-                        aargvark::help::HelpPattern(
-                            vec![aargvark::help::HelpPatternElement::Type("JSON".to_string())],
-                        )
-                    ],
-                )
-            ],
-        );
-    }
-}
 
 pub enum AtPathEarlyRes<T> {
     Return(T),
@@ -74,20 +16,20 @@ pub enum AtPathEarlyRes<T> {
 
 pub enum AtPathEndRes<T> {
     Return(T),
-    SetAndReturn(serde_json::Value, T),
+    SetAndReturn(Supervalue, T),
     Err,
 }
 
 pub fn at_path<
     T,
 >(
-    path: &JsonPath,
-    mut at: &mut serde_json::Value,
+    path: &DataPath,
+    mut at: &mut Supervalue,
     mut handle_early_missing: impl FnMut() -> AtPathEarlyRes<T>,
     mut handle_early_untraversible: impl FnMut() -> AtPathEarlyRes<T>,
-    handle_end_missing: impl FnOnce(&mut serde_json::Map<String, serde_json::Value>, &str) -> AtPathEndRes<T>,
-    handle_end_found: impl FnOnce(&mut serde_json::Map<String, serde_json::Value>, &str) -> Result<T, String>,
-    handle_end_root: impl FnOnce(&mut serde_json::Value) -> Result<T, String>,
+    handle_end_missing: impl FnOnce(&mut SupervalueMap, &str) -> AtPathEndRes<T>,
+    handle_end_found: impl FnOnce(&mut SupervalueMap, &str) -> Result<T, String>,
+    handle_end_root: impl FnOnce(&mut Supervalue) -> Result<T, String>,
 ) -> Result<T, String> {
     if path.0.is_empty() {
         return handle_end_root(at);
@@ -95,7 +37,7 @@ pub fn at_path<
         for (depth, seg) in path.0.iter().enumerate() {
             let last = depth == path.0.len() - 1;
             match at {
-                serde_json::Value::Object(_) => {
+                Supervalue::Map(_) => {
                     // nop
                 },
                 _ => {
@@ -104,7 +46,7 @@ pub fn at_path<
                             return Ok(v);
                         },
                         AtPathEarlyRes::SetAndContinue => {
-                            *at = serde_json::Value::Object(serde_json::Map::new());
+                            *at = Supervalue::Map(Default::default());
                         },
                         AtPathEarlyRes::Err => {
                             return Err(
@@ -118,11 +60,11 @@ pub fn at_path<
                 },
             }
             let map = match at {
-                serde_json::Value::Object(map) => map,
+                Supervalue::Map(map) => map,
                 _ => unreachable!(),
             };
             if last {
-                if map.contains_key(seg) {
+                if map.value.contains_key(seg) {
                     return handle_end_found(map, seg);
                 } else {
                     match handle_end_missing(map, seg) {
@@ -130,7 +72,7 @@ pub fn at_path<
                             return Ok(v);
                         },
                         AtPathEndRes::SetAndReturn(v, ret) => {
-                            map.insert(seg.to_string(), v);
+                            map.value.insert(seg.to_string(), v);
                             return Ok(ret);
                         },
                         AtPathEndRes::Err => {
@@ -145,13 +87,13 @@ pub fn at_path<
                     }
                 }
             } else {
-                if !map.contains_key(seg) {
+                if !map.value.contains_key(seg) {
                     match handle_early_missing() {
                         AtPathEarlyRes::Return(v) => {
                             return Ok(v);
                         },
                         AtPathEarlyRes::SetAndContinue => {
-                            map.insert(seg.clone(), serde_json::Value::Object(serde_json::Map::new()));
+                            map.value.insert(seg.clone(), Supervalue::Map(Default::default()));
                         },
                         AtPathEarlyRes::Err => {
                             return Err(
@@ -164,7 +106,7 @@ pub fn at_path<
                         },
                     }
                 }
-                let Some(v) = map.get_mut(seg) else {
+                let Some(v) = map.value.get_mut(seg) else {
                     unreachable!();
                 };
                 at = v;
@@ -175,14 +117,14 @@ pub fn at_path<
 }
 
 pub enum SearchRes {
-    Replace(serde_json::Value),
+    Replace(Supervalue),
     Delete,
 }
 
 pub fn search(
     root: bool,
-    at: &mut serde_json::Value,
-    needle: &serde_json::Value,
+    at: &mut Supervalue,
+    needle: &Supervalue,
     handle_end_found_obj: &mut impl FnMut() -> SearchRes,
     handle_end_found_arr: &mut impl FnMut() -> SearchRes,
     handle_end_root: impl FnOnce() -> SearchRes,
@@ -194,27 +136,27 @@ pub fn search(
     if root && at == needle {
         match handle_end_root() {
             SearchRes::Replace(value) => *at = value,
-            SearchRes::Delete => *at = serde_json::Value::Null,
+            SearchRes::Delete => *at = Supervalue::Null,
         }
     } else {
         match &mut *at {
-            serde_json::Value::Array(values) => {
+            Supervalue::Vec(values) => {
                 let mut i = 0;
-                while i < values.len() {
-                    if values[i] == *needle {
+                while i < values.value.len() {
+                    if values.value[i] == *needle {
                         match handle_end_found_arr() {
                             SearchRes::Delete => {
-                                values.remove(i);
+                                values.value.remove(i);
                             },
                             SearchRes::Replace(v) => {
-                                values[i] = v;
+                                values.value[i] = v;
                                 i += 1;
                             },
                         }
                     } else {
                         search(
                             false,
-                            &mut values[i],
+                            &mut values.value[i],
                             &*needle,
                             &mut *handle_end_found_obj,
                             &mut *handle_end_found_arr,
@@ -224,21 +166,21 @@ pub fn search(
                     }
                 }
             },
-            serde_json::Value::Object(map) => {
-                for k in map.keys().cloned().collect::<Vec<_>>() {
-                    if map[&k] == *needle {
+            Supervalue::Map(map) => {
+                for k in map.value.keys().cloned().collect::<Vec<_>>() {
+                    if map.value[&k] == *needle {
                         match handle_end_found_obj() {
                             SearchRes::Replace(value) => {
-                                map.insert(k, value);
+                                map.value.insert(k, value);
                             },
                             SearchRes::Delete => {
-                                map.remove(&k);
+                                map.value.remove(&k);
                             },
                         }
                     } else {
                         search(
                             false,
-                            &mut map[&k],
+                            &mut map.value.get_mut(&k).unwrap(),
                             &*needle,
                             &mut *handle_end_found_obj,
                             &mut *handle_end_found_arr,

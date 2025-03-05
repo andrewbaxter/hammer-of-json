@@ -1,19 +1,25 @@
+use {
+    crate::supervalue::{
+        Supervalue,
+        SupervalueMap,
+    },
+};
+
 fn recurse<
     'a,
 >(
     errors: &mut Vec<String>,
     path: &mut Vec<&'a str>,
-    source: &mut serde_json::Map<String, serde_json::Value>,
-    other: &'a serde_json::Map<String, serde_json::Value>,
+    source: &mut SupervalueMap,
+    other: &'a SupervalueMap,
     missing_ok: bool,
 ) {
-    for (k, other_val) in other {
+    for (k, other_val) in &other.value {
         path.push(k);
-        if let Some(source_val) = source.get_mut(k) {
+        if let Some(source_val) = source.value.get_mut(k) {
             if source_val == other_val {
-                source.remove(k);
-            } else if let (serde_json::Value::Object(source), serde_json::Value::Object(other)) =
-                (source_val, other_val) {
+                source.value.remove(k);
+            } else if let (Supervalue::Map(source), Supervalue::Map(other)) = (source_val, other_val) {
                 recurse(errors, path, source, other, missing_ok);
             } else {
                 // nop
@@ -29,11 +35,11 @@ fn recurse<
     }
 }
 
-pub fn subtract(source: &mut serde_json::Value, other: &serde_json::Value, missing_ok: bool) -> Result<(), String> {
+pub fn subtract(source: &mut Supervalue, other: &Supervalue, missing_ok: bool) -> Result<(), String> {
     let mut layer_errors = vec![];
     if source == other {
-        *source = serde_json::Value::Null;
-    } else if let (serde_json::Value::Object(source), serde_json::Value::Object(other)) = (source, other) {
+        *source = Supervalue::Null;
+    } else if let (Supervalue::Map(source), Supervalue::Map(other)) = (source, other) {
         recurse(&mut layer_errors, &mut vec![], source, other, missing_ok);
     } else {
         // nop
@@ -48,36 +54,37 @@ pub fn subtract(source: &mut serde_json::Value, other: &serde_json::Value, missi
 mod test {
     use {
         super::subtract,
+        crate::supervalue::Supervalue,
         serde_json::json,
     };
 
     #[test]
     fn base() {
-        let mut source = json!({
+        let mut source = Supervalue::from(json!({
             "a": {
                 "b": {
                     "c": 4,
                     "d": "hello",
-                },
-                "e": true,
-            },
-            "f": false,
-        });
-        subtract(&mut source, &json!({
-            "a": {
-                "b": {
-                    "d": "hello",
-                }
-            }
-        }), true).unwrap();
-        assert_eq!(source, json!({
-            "a": {
-                "b": {
-                    "c": 4,
                 },
                 "e": true,
             },
             "f": false,
         }));
+        subtract(&mut source, &Supervalue::from(json!({
+            "a": {
+                "b": {
+                    "d": "hello",
+                }
+            }
+        })), true).unwrap();
+        assert_eq!(source, Supervalue::from(json!({
+            "a": {
+                "b": {
+                    "c": 4,
+                },
+                "e": true,
+            },
+            "f": false,
+        })));
     }
 }
