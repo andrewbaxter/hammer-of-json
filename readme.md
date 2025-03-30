@@ -5,7 +5,9 @@ While it's named hammer of _json_, it is also a hammer of _yaml_ and a cudgel of
 Use it like:
 ```
 $ hoj set --in-place f:./manifest.json global.meta f:./global_meta.json
-$ hoj search-set --in-place f:./some.json '"_ARTIFACT_PLACEHOLDER"' '"/tmp/build/artifact.tar.gz"'
+$ payload=$(hoj search-set f:./some.json s:_ARTIFACT_PLACEHOLDER s:/tmp/build/artifact.tar.gz |
+    hoj search-set s:_OUTPUT_PLACEHOLDER "s:$output_dir" |
+    hoj search-set s:_ITERATIONS_PLACEHOLDER 100)
 $ hoj merge f:base.json f:layer1.json f:layer2.json > combined.json
 $ hoj validate-json-shchema f:combined.json
 ```
@@ -26,6 +28,7 @@ Usage: /mnt/home-dev/.cargo_target/debug/hoj COMMAND [ ...FLAGS]
 
 COMMAND: array | get | set | delete | keep | search-set | search-delete | intersect | subtract | merge | validate-json-schema
 
+    format ...                     Format data without changing its value
     array ...                      Create an array from arguments.  Arguments are parsed as JSON, if 
                                    that fails they're turned into JSON strings. To make values into strings
                                    explicitly, add quotes. (ex, in bash: `'"123"'`)
@@ -53,31 +56,33 @@ FORMAT: compact-json | pretty-json | toml | yaml
 
 # Conventions
 
-## Paths
+There are two main data types used in arguments: _paths_ and _values_.
 
-_Paths_ are one of the two main data types in command arguments.
+## Paths
 
 A path can be:
 
-- A number of `.` delimited segments, like `a.b.c`. These don't take escapes, so only simple strings (no `.`) segments are allowed.
+- A number of `.` delimited segments, like `a.b.c`. These don't take escapes, so only simple string (no internal `.`'s) segments are allowed.
 
 - A json array of strings: `["a", "b", "c"]`
 
-These are unambiguous s o`hoj` automatically detects which type of path it is.
+These are unambiguous - `hoj` automatically detects which type of path it is.
 
 This path addresses corresponds to the value at key `a`, then the value at key `b` within that, and then the value at key `c` within that.
 
 ## Values
 
-The other main data type in command arguments is the _value_.
-
 A value can be:
 
 - Inline json
 
+- A string, prefixed by `s:`
+
 - Inline yaml, prefixed by `y:`
 
 - Inline toml, prefixed by `t:`
+
+- A path prefixed by `fs:` (like `fs:./a.txt`) referring to the contents of a plain text file to be treated as a string
 
 - A path prefixed by `f:` (like `f:./a.json`) referring to the contents of a json file
 
@@ -113,7 +118,7 @@ If you find a situation where you need to manipulate arrays, try:
 
 3. Duplicating the array - for instance, if you want to merge document A into B and replace one element of an array in B, instead replace the whole array in B.
 
-## Yaml, Toml
+## Taml, Yoml
 
 These are supported, but there are some limitations inherent and otherwise:
 

@@ -31,6 +31,15 @@ use {
 };
 
 #[derive(Aargvark)]
+struct FormatCommand {
+    /// Source JSON file
+    source: AargSupervalue,
+    /// Modify source in-place
+    #[vark(flag = "--in-place", flag = "-i")]
+    in_place: Option<()>,
+}
+
+#[derive(Aargvark)]
 struct ArrayCommand {
     elements: Vec<String>,
 }
@@ -176,6 +185,8 @@ struct ValidateJsonSchemaCommand {
 #[derive(Aargvark)]
 #[vark(break_help)]
 enum Command {
+    /// Format data without changing its value
+    Format(FormatCommand),
     /// Create an array from arguments.  Arguments are parsed as JSON, if that fails
     /// they're turned into JSON strings. To make values into strings explicitly, add
     /// quotes. (ex, in bash: `'"123"'`)
@@ -274,6 +285,16 @@ fn output(
 fn main1() -> Result<(), String> {
     let root_args = vark::<Args>();
     match root_args.command {
+        Command::Format(args) => {
+            output(
+                args.source.value,
+                args.source.source,
+                args.source.original_format,
+                false,
+                args.in_place.is_some(),
+                root_args.format,
+            )?;
+        },
         Command::Array(args) => {
             let mut out = vec![];
             for arg in args.elements {

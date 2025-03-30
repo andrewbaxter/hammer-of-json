@@ -1,5 +1,6 @@
 use {
     aargvark::traits_impls::{
+        AargvarkFile,
         AargvarkFromStr,
         AargvarkJson,
         AargvarkToml,
@@ -10,9 +11,7 @@ use {
         shed,
     },
     samevariant::samevariant,
-    std::{
-        collections::HashMap,
-    },
+    std::collections::HashMap,
 };
 
 const YAML_TAG_TAG: &str = "tag";
@@ -306,7 +305,21 @@ pub struct AargSupervalue {
 
 impl AargvarkFromStr for AargSupervalue {
     fn from_str(s: &str) -> Result<Self, String> {
-        if let Some(path) = s.strip_prefix("f:") {
+        if let Some(text) = s.strip_prefix("s:") {
+            return Ok(AargSupervalue {
+                original_format: AargSupervalueOriginalFormat::Json,
+                value: Supervalue::String(text.into()),
+                source: aargvark::traits_impls::Source::Stdin,
+            });
+        } else if let Some(path) = s.strip_prefix("fs:") {
+            let t = AargvarkFile::from_str(path)?;
+            let text = String::from_utf8(t.value).map_err(|e| format!("Invalid utf-8 in file [{}]: {}", path, e))?;
+            return Ok(AargSupervalue {
+                original_format: AargSupervalueOriginalFormat::Json,
+                value: Supervalue::String(text),
+                source: t.source,
+            });
+        } else if let Some(path) = s.strip_prefix("f:") {
             let t = AargvarkJson::<serde_json::Value>::from_str(path)?;
             return Ok(AargSupervalue {
                 original_format: AargSupervalueOriginalFormat::Json,
