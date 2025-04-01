@@ -125,16 +125,16 @@ pub fn search(
     root: bool,
     at: &mut Supervalue,
     needle: &Supervalue,
-    handle_end_found_obj: &mut impl FnMut() -> SearchRes,
-    handle_end_found_arr: &mut impl FnMut() -> SearchRes,
-    handle_end_root: impl FnOnce() -> SearchRes,
+    handle_end_found_in_obj: &mut impl FnMut() -> SearchRes,
+    handle_end_found_in_arr: &mut impl FnMut() -> SearchRes,
+    handle_end_found_at_root: impl FnOnce() -> SearchRes,
 ) {
     fn nil_handle_end() -> SearchRes {
         unreachable!();
     }
 
     if root && at == needle {
-        match handle_end_root() {
+        match handle_end_found_at_root() {
             SearchRes::Replace(value) => *at = value,
             SearchRes::Delete => *at = Supervalue::Null,
         }
@@ -144,7 +144,7 @@ pub fn search(
                 let mut i = 0;
                 while i < values.value.len() {
                     if values.value[i] == *needle {
-                        match handle_end_found_arr() {
+                        match handle_end_found_in_arr() {
                             SearchRes::Delete => {
                                 values.value.remove(i);
                             },
@@ -158,8 +158,8 @@ pub fn search(
                             false,
                             &mut values.value[i],
                             &*needle,
-                            &mut *handle_end_found_obj,
-                            &mut *handle_end_found_arr,
+                            &mut *handle_end_found_in_obj,
+                            &mut *handle_end_found_in_arr,
                             nil_handle_end,
                         );
                         i += 1;
@@ -169,7 +169,7 @@ pub fn search(
             Supervalue::Map(map) => {
                 for k in map.value.keys().cloned().collect::<Vec<_>>() {
                     if map.value[&k] == *needle {
-                        match handle_end_found_obj() {
+                        match handle_end_found_in_obj() {
                             SearchRes::Replace(value) => {
                                 map.value.insert(k, value);
                             },
@@ -182,8 +182,8 @@ pub fn search(
                             false,
                             &mut map.value.get_mut(&k).unwrap(),
                             &*needle,
-                            &mut *handle_end_found_obj,
-                            &mut *handle_end_found_arr,
+                            &mut *handle_end_found_in_obj,
+                            &mut *handle_end_found_in_arr,
                             nil_handle_end,
                         );
                     }

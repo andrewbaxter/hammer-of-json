@@ -6,17 +6,30 @@ use {
             SearchRes,
         },
     },
+    std::cell::Cell,
 };
 
-pub fn search_set(source: &mut Supervalue, needle: &Supervalue, data: &Supervalue) {
+pub fn search_set(source: &mut Supervalue, needle: &Supervalue, data: &Supervalue) -> usize {
+    let replacements = Cell::new(0);
     search(
+        //. .
         true,
         source,
         needle,
-        &mut || SearchRes::Replace(data.clone()),
-        &mut || SearchRes::Replace(data.clone()),
-        || SearchRes::Replace(data.clone()),
+        &mut || {
+            replacements.set(replacements.get() + 1);
+            return SearchRes::Replace(data.clone());
+        },
+        &mut || {
+            replacements.set(replacements.get() + 1);
+            return SearchRes::Replace(data.clone());
+        },
+        || {
+            replacements.set(replacements.get() + 1);
+            return SearchRes::Replace(data.clone());
+        },
     );
+    return replacements.get();
 }
 
 #[cfg(test)]

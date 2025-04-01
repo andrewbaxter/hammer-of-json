@@ -123,6 +123,9 @@ struct SearchSetCommand {
     needle: AargSupervalue,
     /// Data to replace `needle`
     data: AargSupervalue,
+    /// Even if the needle isn't found don't exit with an error.
+    #[vark(flag = "--missing-ok", flag = "-m")]
+    missing_ok: Option<()>,
 }
 
 #[derive(Aargvark)]
@@ -134,6 +137,9 @@ struct SearchDeleteCommand {
     in_place: Option<()>,
     /// Data to delete from `source`
     needle: AargSupervalue,
+    /// Even if the needle isn't found don't exit with an error.
+    #[vark(flag = "--missing-ok", flag = "-m")]
+    missing_ok: Option<()>,
 }
 
 #[derive(Aargvark)]
@@ -367,7 +373,17 @@ fn main1() -> Result<(), String> {
         },
         Command::SearchSet(args) => {
             let mut out = args.source.value;
-            search_set(&mut out, &args.needle.value, &args.data.value);
+            let change_count = search_set(&mut out, &args.needle.value, &args.data.value);
+            if args.missing_ok.is_none() && change_count == 0 {
+                return Err(
+                    format!(
+                        "No changes made; couldn't find needle {}",
+                        serde_json::to_string(
+                            &<Supervalue as Into<serde_json::Value>>::into(args.needle.value),
+                        ).unwrap()
+                    ),
+                );
+            }
             output(
                 out,
                 args.source.source,
@@ -379,7 +395,17 @@ fn main1() -> Result<(), String> {
         },
         Command::SearchDelete(args) => {
             let mut out = args.source.value;
-            search_delete(&mut out, &args.needle.value);
+            let change_count = search_delete(&mut out, &args.needle.value);
+            if args.missing_ok.is_none() && change_count == 0 {
+                return Err(
+                    format!(
+                        "No changes made; couldn't find needle {}",
+                        serde_json::to_string(
+                            &<Supervalue as Into<serde_json::Value>>::into(args.needle.value),
+                        ).unwrap()
+                    ),
+                );
+            }
             output(
                 out,
                 args.source.source,
