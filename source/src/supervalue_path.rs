@@ -14,14 +14,16 @@ impl AargvarkFromStr for DataPath {
                     ).map_err(|e| format!("Error parsing path as JSON array of strings: {}", e))?,
                 ),
             );
+        } else if let Some(s) = s.strip_prefix(".") {
+            return Ok(DataPath(s.split(".").map(|x| x.to_string()).collect::<Vec<_>>()));
         } else {
-            return Ok(
-                DataPath(s.trim_end_matches('.').split(".").map(|x| x.to_string()).collect::<Vec<_>>()),
-            );
+            return Err(format!("Paths must start with a [.]"));
         }
     }
 
     fn build_help_pattern(_state: &mut aargvark::help::HelpState) -> aargvark::help::HelpPattern {
-        return aargvark::help::HelpPattern(vec![aargvark::help::HelpPatternElement::Type(format!("PATH.TO.DATA"))]);
+        return aargvark::help::HelpPattern(
+            vec![aargvark::help::HelpPatternElement::Type(format!(".PATH.TO.DATA"))],
+        );
     }
 }

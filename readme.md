@@ -1,37 +1,27 @@
-This is a collection of tools for common json document manipulations.  It operates on entire documents, not streams, unlike `jq`.
+This is a collection of tools for common json document manipulations. It operates on entire documents, not streams, unlike `jq`.
 
 While it's named hammer of _json_, it is also a hammer of _yaml_ and a cudgel of _toml_.
-
-Use it like:
-```
-$ hoj set --in-place f:./manifest.json global.meta f:./global_meta.json
-$ payload=$(hoj search-set f:./some.json s:_ARTIFACT_PLACEHOLDER s:/tmp/build/artifact.tar.gz |
-    hoj search-set s:_OUTPUT_PLACEHOLDER "s:$output_dir" |
-    hoj search-set s:_ITERATIONS_PLACEHOLDER 100)
-$ hoj merge f:base.json f:layer1.json f:layer2.json > combined.json
-$ hoj validate-json-shchema f:combined.json
-```
-
-The commands above have two types of arguments: `values` (like `f:./manifest.json`) and paths (like `global.meta`) - see below for more info on those.
 
 The command line help provides the best overview:
 
 ```
 $ hoj -h
-Usage: /mnt/home-dev/.cargo_target/debug/hoj COMMAND [ ...FLAGS]
+Usage: hoj SOURCE COMMANDS [ ...FLAGS]
 
-    This is a collection of tools for common json document manipulations.
+    This is a collection of tools for common json (and yaml, and toml) document manipulations.
 
-    COMMAND: COMMAND
+ SOURCE: <s:STRING> | <fs:PATH> | <f:PATH> | <fy:PATH> | <ft:PTAH> | <y:YAML> | <t:TOML> | <JSON>
+        Source JSON file
+    COMMANDS: COMMAND[ ...]
     [--format FORMAT]              Output format, defaults to `pretty`
     [-f FORMAT]                    (synonym for `--format`)
+    [--in-place]                   Modify source in-place
+    [-i]                           (synonym for `--in-place`)
+    [--unquote]                    If the result is a string value, output as anunquoted (non-json) string
+    [-u]                           (synonym for `--unquote`)
 
-COMMAND: array | get | set | delete | keep | search-set | search-delete | intersect | subtract | merge | validate-json-schema
+COMMAND: get | set | delete | keep | search-set | search-delete | intersect | subtract | merge | validate-json-schema
 
-    format ...                     Format data without changing its value
-    array ...                      Create an array from arguments.  Arguments are parsed as JSON, if 
-                                   that fails they're turned into JSON strings. To make values into strings
-                                   explicitly, add quotes. (ex, in bash: `'"123"'`)
     get ...                        Get the subtree at a path, outputting the subtree
     set ...                        Replace/insert a subtree at a path, outputting the modified data
     delete ...                     Remove the subtrees at paths, returning the remaining data
@@ -39,12 +29,12 @@ COMMAND: array | get | set | delete | keep | search-set | search-delete | inters
     search-set ...                 Search for matching values and replace them with a new value
     search-delete ...              Search for matching values and delete them
     intersect ...                  Return the tree common to all trees. I.e. for `{"a": 1, "b": 2}` and
-                                   `{"b": 2, "c": 3}` return `{"b": 2}`
+                                     `{"b": 2, "c": 3}` return `{"b": 2}`
     subtract ...                   Return the tree that's not present in any of these files
     merge ...                      Add the data in each file, sequentually. Objects are recursed and merged
-                                   per-key, while all other values are replaced
-    validate-json-schema ...       Validate a file against a schema, either internal (via a root `"$schema"` key)
-                                   or external
+                                     per-key, while all other values are replaced
+    validate-json-schema ...       Validate a file against a schema, either internal (via a root `"$schema"`
+                                     key) or external
 
 FORMAT: compact-json | pretty-json | toml | yaml
 
@@ -54,6 +44,20 @@ FORMAT: compact-json | pretty-json | toml | yaml
     yaml
 ```
 
+The subcommands are pipelined, with the output of the previous command being the input of the next command, so you can do things like:
+
+```
+hoj f:fdap.json \
+    search-set s:__SET_ADMIN_TOKEN "s:$ADMIN_TOKEN" \
+    search-set s:__SET_XYZ_PASSWORD "s:$XYZ_PASSWORD" \
+    search-set s:__SET_QUERY_ALBUMS "$query_albums_json" \
+    search-set s:__SET_QUERY_ALBUMS_TRACKS "$query_albums_tracks_json" \
+    search-set s:__SET_QUERY_NOTES "$query_notes_json" \
+    validate-json-schema
+```
+
+In-place modification and referencing external files in `validate-json-schema` are done relative to the source file path and pipelining preserves this context through all the commands.
+
 # Conventions
 
 There are two main data types used in arguments: _paths_ and _values_.
@@ -62,7 +66,7 @@ There are two main data types used in arguments: _paths_ and _values_.
 
 A path can be:
 
-- A number of `.` delimited segments, like `a.b.c`. These don't take escapes, so only simple string (no internal `.`'s) segments are allowed.
+- A number of `.` prefixed segments, like `.a.b.c`. These don't take escapes, so only simple string (no internal `.`'s) segments are allowed.
 
 - A json array of strings: `["a", "b", "c"]`
 
@@ -112,7 +116,7 @@ Where the implementation is unambiguous these tools attempt to support arrays.
 
 If you find a situation where you need to manipulate arrays, try:
 
-1. Working with upstream to find a way to turn the array into an object instead.  Do this for situations where you want a "set" too, by creating an object with your unique values mapped to boolean values and have the application ignore any values set to `false`.
+1. Working with upstream to find a way to turn the array into an object instead. Do this for situations where you want a "set" too, by creating an object with your unique values mapped to boolean values and have the application ignore any values set to `false`.
 
 2. Using objects in your own data and implementing a post-processing step to convert the object back into an array.
 

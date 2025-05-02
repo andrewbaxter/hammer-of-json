@@ -371,12 +371,32 @@ impl AargvarkFromStr for AargSupervalue {
         }
     }
 
-    fn build_help_pattern(state: &mut aargvark::help::HelpState) -> aargvark::help::HelpPattern {
+    fn build_help_pattern(_state: &mut aargvark::help::HelpState) -> aargvark::help::HelpPattern {
         return aargvark::help::HelpPattern(
             vec![
                 aargvark::help::HelpPatternElement::Variant(
                     vec![
-                        AargvarkJson::<serde_json::Value>::build_help_pattern(state),
+                        aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("s:STRING".to_string())],
+                        ),
+                        aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("fs:PATH".to_string())],
+                        ),
+                        aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("f:PATH".to_string())],
+                        ),
+                        aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("fy:PATH".to_string())],
+                        ),
+                        aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("ft:PTAH".to_string())],
+                        ),
+                        aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("y:YAML".to_string())],
+                        ),
+                        aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("t:TOML".to_string())],
+                        ),
                         aargvark::help::HelpPattern(
                             vec![aargvark::help::HelpPatternElement::Type("JSON".to_string())],
                         )

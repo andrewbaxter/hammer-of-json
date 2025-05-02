@@ -31,29 +31,7 @@ use {
 };
 
 #[derive(Aargvark)]
-struct FormatCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
-}
-
-#[derive(Aargvark)]
-struct ArrayCommand {
-    elements: Vec<String>,
-}
-
-#[derive(Aargvark)]
 struct GetCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
-    /// If the result is a string value, output as an unquoted (non-json) string
-    #[vark(flag = "--unquote", flag = "-u")]
-    unquote: Option<()>,
     /// If a value referred to by a path, values to replace, or data to subtract is
     /// missing, don't abort (treat as ok).
     #[vark(flag = "--missing-ok", flag = "-m")]
@@ -64,14 +42,6 @@ struct GetCommand {
 
 #[derive(Aargvark)]
 struct SetCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
-    /// If the result is a string value, output as an unquoted (non-json) string
-    #[vark(flag = "--unquote", flag = "-u")]
-    unquote: Option<()>,
     /// If a value referred to by a path, values to replace, or data to subtract is
     /// missing, don't abort (treat as ok).
     #[vark(flag = "--missing-ok", flag = "-m")]
@@ -84,11 +54,6 @@ struct SetCommand {
 
 #[derive(Aargvark)]
 struct DeleteCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
     /// If a value referred to by a path, values to replace, or data to subtract is
     /// missing, don't abort (treat as ok).
     #[vark(flag = "--missing-ok", flag = "-m")]
@@ -99,11 +64,6 @@ struct DeleteCommand {
 
 #[derive(Aargvark)]
 struct KeepCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
     /// If a value referred to by a path, values to replace, or data to subtract is
     /// missing, don't abort (treat as ok).
     #[vark(flag = "--missing-ok", flag = "-m")]
@@ -114,11 +74,6 @@ struct KeepCommand {
 
 #[derive(Aargvark)]
 struct SearchSetCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
     /// Data to find in `source`
     needle: AargSupervalue,
     /// Data to replace `needle`
@@ -130,11 +85,6 @@ struct SearchSetCommand {
 
 #[derive(Aargvark)]
 struct SearchDeleteCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
     /// Data to delete from `source`
     needle: AargSupervalue,
     /// Even if the needle isn't found don't exit with an error.
@@ -144,22 +94,12 @@ struct SearchDeleteCommand {
 
 #[derive(Aargvark)]
 struct IntersectCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
     /// Data to intersect with `source`
     values: Vec<AargSupervalue>,
 }
 
 #[derive(Aargvark)]
 struct SubtractCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
     /// If a value referred to by a path, values to replace, or data to subtract is
     /// missing, don't abort (treat as ok).
     #[vark(flag = "--missing-ok", flag = "-m")]
@@ -170,19 +110,12 @@ struct SubtractCommand {
 
 #[derive(Aargvark)]
 struct MergeCommand {
-    /// Source JSON file
-    source: AargSupervalue,
-    /// Modify source in-place
-    #[vark(flag = "--in-place", flag = "-i")]
-    in_place: Option<()>,
     /// Data to merge into `source`
     values: Vec<AargSupervalue>,
 }
 
 #[derive(Aargvark)]
 struct ValidateJsonSchemaCommand {
-    /// Source JSON file
-    source: AargSupervalue,
     /// External schema to validate `source` against. Overrides `$schema` in `source`
     /// if present.
     external: Option<AargSupervalue>,
@@ -191,12 +124,6 @@ struct ValidateJsonSchemaCommand {
 #[derive(Aargvark)]
 #[vark(break_help)]
 enum Command {
-    /// Format data without changing its value
-    Format(FormatCommand),
-    /// Create an array from arguments.  Arguments are parsed as JSON, if that fails
-    /// they're turned into JSON strings. To make values into strings explicitly, add
-    /// quotes. (ex, in bash: `'"123"'`)
-    Array(ArrayCommand),
     /// Get the subtree at a path, outputting the subtree
     Get(GetCommand),
     /// Replace/insert a subtree at a path, outputting the modified data
@@ -212,10 +139,10 @@ enum Command {
     /// Return the tree common to all trees. I.e. for `{"a": 1, "b": 2}` and
     /// `{"b": 2, "c": 3}` return `{"b": 2}`
     Intersect(IntersectCommand),
-    /// Return the tree that's not present in any of these files
+    /// Return the tree composed of elements not present in any of these other trees
     Subtract(SubtractCommand),
-    /// Add the data in each file, sequentually. Objects are recursed and merged
-    /// per-key, while all other values are replaced
+    /// Add the data in each file, sequentually. Objects fields are recursed, while all
+    /// other values are replaced
     Merge(MergeCommand),
     /// Validate a file against a schema, either internal (via a root `"$schema"` key)
     /// or external
@@ -238,321 +165,252 @@ struct Args {
     /// Output format, defaults to `pretty`
     #[vark(flag = "--format", flag = "-f")]
     format: Option<Format>,
-    command: Command,
+    /// Source JSON file
+    source: AargSupervalue,
+    /// Modify source in-place
+    #[vark(flag = "--in-place", flag = "-i")]
+    in_place: Option<()>,
+    /// If the result is a string value, output as an unquoted (non-json) string
+    #[vark(flag = "--unquote", flag = "-u")]
+    unquote: Option<()>,
+    commands: Vec<Command>,
 }
 
-fn output(
-    v: Supervalue,
-    source: aargvark::traits_impls::Source,
-    original_format: AargSupervalueOriginalFormat,
-    unquote: bool,
-    in_place: bool,
-    format: Option<Format>,
-) -> Result<(), String> {
+fn main1() -> Result<(), String> {
+    let root_args = vark::<Args>();
+    let mut at = root_args.source.value;
+    for command in root_args.commands {
+        match command {
+            Command::Get(args) => {
+                at = get(&mut at, &args.path, args.missing_ok.is_some())?.unwrap_or(Supervalue::Null);
+            },
+            Command::Set(args) => {
+                set(&mut at, &args.path, &args.data.value, args.missing_ok.is_some())?;
+            },
+            Command::Delete(args) => {
+                for path in args.paths {
+                    delete(&mut at, &path, args.missing_ok.is_some())?;
+                }
+            },
+            Command::Keep(args) => {
+                let mut out = None;
+                for path in args.paths {
+                    keep(&mut at, &mut out, &path, args.missing_ok.is_some())?;
+                }
+                at = out.unwrap_or(Supervalue::Null);
+            },
+            Command::SearchSet(args) => {
+                let change_count = search_set(&mut at, &args.needle.value, &args.data.value);
+                if args.missing_ok.is_none() && change_count == 0 {
+                    return Err(
+                        format!(
+                            "No changes made; couldn't find needle {}",
+                            serde_json::to_string(
+                                &<Supervalue as Into<serde_json::Value>>::into(args.needle.value),
+                            ).unwrap()
+                        ),
+                    );
+                }
+            },
+            Command::SearchDelete(args) => {
+                let change_count = search_delete(&mut at, &args.needle.value);
+                if args.missing_ok.is_none() && change_count == 0 {
+                    return Err(
+                        format!(
+                            "No changes made; couldn't find needle {}",
+                            serde_json::to_string(
+                                &<Supervalue as Into<serde_json::Value>>::into(args.needle.value),
+                            ).unwrap()
+                        ),
+                    );
+                }
+            },
+            Command::Intersect(args) => {
+                for other in args.values {
+                    intersect(&mut at, &other.value);
+                }
+            },
+            Command::Subtract(args) => {
+                for (layer_index, arg) in args.values.iter().enumerate() {
+                    if let Err(e) = subtract(&mut at, &arg.value, args.missing_ok.is_some()) {
+                        return Err(format!("Failed to subtract layer {}:\n{}", layer_index, e));
+                    }
+                }
+            },
+            Command::Merge(args) => {
+                for v in args.values {
+                    merge(&mut at, v.value);
+                }
+            },
+            Command::ValidateJsonSchema(args) => {
+                let schema: serde_json::Value = if let Some(schema) = args.external {
+                    schema.value.into()
+                } else if let Some(Supervalue::String(addr)) =
+                    get(&mut at, &DataPath(vec!["$schema".to_string()]), true)? {
+                    if addr.starts_with("https://") || addr.starts_with("http:///") {
+                        ureq::get(addr.as_str())
+                            .call()
+                            .map_err(|e| format!("Error sending request for external schema at [{}]: {}", addr, e))?
+                            .body_mut()
+                            .read_json()
+                            .map_err(
+                                |e| format!("Error reading JSON from external schema response at [{}]: {}", addr, e),
+                            )?
+                    } else {
+                        let schema =
+                            std::fs::read(
+                                &addr,
+                            ).map_err(|e| format!("Error loading schema [{}] from disk: {}", addr, e))?;
+                        let schema =
+                            serde_json::from_slice::<serde_json::Value>(
+                                &schema,
+                            ).map_err(|e| format!("Schema at [{}] is invalid JSON: {}", addr, e))?;
+                        schema
+                    }
+                } else {
+                    return Err(
+                        format!("The data doesn't contain `$schema` and no external schema specified, cannot validate"),
+                    );
+                };
+
+                struct MyRetriever {
+                    working_directory: PathBuf,
+                }
+
+                impl jsonschema::Retrieve for MyRetriever {
+                    fn retrieve(
+                        &self,
+                        uri: &jsonschema::Uri<String>,
+                    ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+                        match uri.scheme().as_str() {
+                            "http" | "https" => {
+                                return Ok(
+                                    ureq::get(uri.as_str())
+                                        .call()
+                                        .map_err(
+                                            |e| format!(
+                                                "Error sending request for external resource at [{}]: {}",
+                                                uri,
+                                                e
+                                            ),
+                                        )?
+                                        .body_mut()
+                                        .read_json()
+                                        .map_err(
+                                            |e| format!(
+                                                "Error reading JSON from external resource response at [{}]: {}",
+                                                uri,
+                                                e
+                                            ),
+                                        )?,
+                                );
+                            },
+                            "json-schema" => {
+                                let path = self.working_directory.join(uri.path().as_str().trim_start_matches("/"));
+                                return Ok(
+                                    serde_json::from_slice(
+                                        &std::fs::read(
+                                            &path,
+                                        ).map_err(
+                                            |e| format!("Error reading external resource at [{:?}]: {}", path, e),
+                                        )?,
+                                    )?,
+                                );
+                            },
+                            "file" | "" => {
+                                let path = self.working_directory.join(uri.path().as_str());
+                                return Ok(
+                                    serde_json::from_slice(
+                                        &std::fs::read(
+                                            &path,
+                                        ).map_err(
+                                            |e| format!("Error reading external resource at [{:?}]: {}", path, e),
+                                        )?,
+                                    )?,
+                                );
+                            },
+                            scheme => {
+                                return Err(
+                                    std::io::Error::other(
+                                        format!("Unimplemented resource url scheme: {}", scheme),
+                                    ).into(),
+                                );
+                            },
+                        }
+                    }
+                }
+
+                let validator =
+                    Validator::options()
+                        .with_retriever(MyRetriever { working_directory: match &root_args.source.source {
+                            aargvark::traits_impls::Source::Stdin => current_dir().map_err(
+                                |e| format!(
+                                    "No file source to root relative paths and couldn't determine working directory from executable working directory: {}",
+                                    e
+                                ),
+                            )?,
+                            aargvark::traits_impls::Source::File(v) => v
+                                .canonicalize()
+                                .map_err(
+                                    |e| format!(
+                                        "Error determining absolute path of source [{}]: {}",
+                                        v.to_string_lossy(),
+                                        e
+                                    ),
+                                )?
+                                .parent()
+                                .ok_or_else(
+                                    || format!(
+                                        "Could not determine parent directory of source file [{}]",
+                                        v.to_string_lossy()
+                                    ),
+                                )?
+                                .to_path_buf(),
+                        } })
+                        .build(&schema)
+                        .map_err(|e| format!("Error interpreting JSON Schema as JSON Schema: {}", e))?;
+                if let Err(e) = validator.validate(&at.clone().into()) {
+                    eprintln!("{}", e);
+                    exit(1);
+                }
+            },
+        }
+    }
     let v = superif!({
-        if !unquote {
+        if !root_args.unquote.is_some() {
             break 'quote;
         }
-        let Supervalue::String(v) = v else {
+        let Supervalue::String(at) = at else {
             break 'quote;
         };
-        v
+        at
     } 'quote {
-        match format.unwrap_or(match original_format {
+        match root_args.format.unwrap_or(match root_args.source.original_format {
             AargSupervalueOriginalFormat::Json => Format::PrettyJson,
             AargSupervalueOriginalFormat::Yaml => Format::Yaml,
             AargSupervalueOriginalFormat::Toml => Format::Toml,
         }) {
             Format::CompactJson => {
-                serde_json::to_string(&<Supervalue as Into::<serde_json::Value>>::into(v)).unwrap()
+                serde_json::to_string(&<Supervalue as Into::<serde_json::Value>>::into(at)).unwrap()
             },
             Format::PrettyJson => {
-                serde_json::to_string_pretty(&<Supervalue as Into::<serde_json::Value>>::into(v)).unwrap()
+                serde_json::to_string_pretty(&<Supervalue as Into::<serde_json::Value>>::into(at)).unwrap()
             },
             Format::Toml => {
-                toml::to_string_pretty(&<Supervalue as Into::<toml::Value>>::into(v)).unwrap()
+                toml::to_string_pretty(&<Supervalue as Into::<toml::Value>>::into(at)).unwrap()
             },
             Format::Yaml => {
-                serde_yaml::to_string(&<Supervalue as Into::<serde_yaml::Value>>::into(v)).unwrap()
+                serde_yaml::to_string(&<Supervalue as Into::<serde_yaml::Value>>::into(at)).unwrap()
             },
         }
     });
-    if in_place {
-        let aargvark::traits_impls::Source::File(p) = &source else {
+    if root_args.in_place.is_some() {
+        let aargvark::traits_impls::Source::File(p) = &root_args.source.source else {
             return Err("Requested in-place modification but source is not a filesystem path".to_string());
         };
         write(&p, v.as_bytes()).map_err(|e| format!("Error writing result to {:?}: {}", p, e))?;
     } else {
         print!("{}", v);
-    }
-    return Ok(());
-}
-
-fn main1() -> Result<(), String> {
-    let root_args = vark::<Args>();
-    match root_args.command {
-        Command::Format(args) => {
-            output(
-                args.source.value,
-                args.source.source,
-                args.source.original_format,
-                false,
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::Array(args) => {
-            let mut out = vec![];
-            for arg in args.elements {
-                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&arg) {
-                    out.push(v.into());
-                } else {
-                    out.push(Supervalue::String(arg));
-                }
-            }
-            let out = match root_args.format.unwrap_or_default() {
-                Format::CompactJson => serde_json::to_string(&serde_json::Value::from(out)).unwrap(),
-                Format::PrettyJson => serde_json::to_string_pretty(&serde_json::Value::from(out)).unwrap(),
-                Format::Toml => toml::to_string_pretty(&toml::Value::from(out)).unwrap(),
-                Format::Yaml => serde_yaml::to_string(&serde_yaml::Value::from(out)).unwrap(),
-            };
-            print!("{}", out);
-        },
-        Command::Get(args) => {
-            let mut source = args.source.value;
-            let at = get(&mut source, &args.path, args.missing_ok.is_some())?.unwrap_or(Supervalue::Null);
-            output(
-                at,
-                args.source.source,
-                args.source.original_format,
-                args.unquote.is_some(),
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::Set(args) => {
-            let mut out = args.source.value;
-            set(&mut out, &args.path, &args.data.value, args.missing_ok.is_some())?;
-            output(
-                out,
-                args.source.source,
-                args.source.original_format,
-                args.unquote.is_some(),
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::Delete(args) => {
-            let mut out = args.source.value;
-            for path in args.paths {
-                delete(&mut out, &path, args.missing_ok.is_some())?;
-            }
-            output(
-                out,
-                args.source.source,
-                args.source.original_format,
-                false,
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::Keep(args) => {
-            let mut source = args.source.value;
-            let mut out = None;
-            for path in args.paths {
-                keep(&mut source, &mut out, &path, args.missing_ok.is_some())?;
-            }
-            output(
-                out.unwrap_or(Supervalue::Null),
-                args.source.source,
-                args.source.original_format,
-                false,
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::SearchSet(args) => {
-            let mut out = args.source.value;
-            let change_count = search_set(&mut out, &args.needle.value, &args.data.value);
-            if args.missing_ok.is_none() && change_count == 0 {
-                return Err(
-                    format!(
-                        "No changes made; couldn't find needle {}",
-                        serde_json::to_string(
-                            &<Supervalue as Into<serde_json::Value>>::into(args.needle.value),
-                        ).unwrap()
-                    ),
-                );
-            }
-            output(
-                out,
-                args.source.source,
-                args.source.original_format,
-                false,
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::SearchDelete(args) => {
-            let mut out = args.source.value;
-            let change_count = search_delete(&mut out, &args.needle.value);
-            if args.missing_ok.is_none() && change_count == 0 {
-                return Err(
-                    format!(
-                        "No changes made; couldn't find needle {}",
-                        serde_json::to_string(
-                            &<Supervalue as Into<serde_json::Value>>::into(args.needle.value),
-                        ).unwrap()
-                    ),
-                );
-            }
-            output(
-                out,
-                args.source.source,
-                args.source.original_format,
-                false,
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::Intersect(args) => {
-            let mut out = args.source.value;
-            for other in args.values {
-                intersect(&mut out, &other.value);
-            }
-            output(
-                out,
-                args.source.source,
-                args.source.original_format,
-                false,
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::Subtract(args) => {
-            let mut out = args.source.value;
-            for (layer_index, arg) in args.values.iter().enumerate() {
-                if let Err(e) = subtract(&mut out, &arg.value, args.missing_ok.is_some()) {
-                    return Err(format!("Failed to subtract layer {}:\n{}", layer_index, e));
-                }
-            }
-            output(
-                out,
-                args.source.source,
-                args.source.original_format,
-                false,
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::Merge(args) => {
-            let mut out = args.source.value;
-            for v in args.values {
-                merge(&mut out, v.value);
-            }
-            output(
-                out,
-                args.source.source,
-                args.source.original_format,
-                false,
-                args.in_place.is_some(),
-                root_args.format,
-            )?;
-        },
-        Command::ValidateJsonSchema(args) => {
-            let mut source = args.source.value;
-            let schema: serde_json::Value = if let Some(schema) = args.external {
-                schema.value.into()
-            } else if let Some(Supervalue::String(addr)) =
-                get(&mut source, &DataPath(vec!["$schema".to_string()]), true)? {
-                if addr.starts_with("https://") || addr.starts_with("http:///") {
-                    ureq::get(addr.as_str())
-                        .call()
-                        .map_err(|e| format!("Error sending request for external schema at [{}]: {}", addr, e))?
-                        .body_mut()
-                        .read_json()
-                        .map_err(
-                            |e| format!("Error reading JSON from external schema response at [{}]: {}", addr, e),
-                        )?
-                } else {
-                    let schema =
-                        std::fs::read(
-                            &addr,
-                        ).map_err(|e| format!("Error loading schema [{}] from disk: {}", addr, e))?;
-                    let schema =
-                        serde_json::from_slice::<serde_json::Value>(
-                            &schema,
-                        ).map_err(|e| format!("Schema at [{}] is invalid JSON: {}", addr, e))?;
-                    schema
-                }
-            } else {
-                return Err(
-                    format!("The data doesn't contain `$schema` and no external schema specified, cannot validate"),
-                );
-            };
-
-            struct MyRetriever {
-                working_directory: PathBuf,
-            }
-
-            impl jsonschema::Retrieve for MyRetriever {
-                fn retrieve(
-                    &self,
-                    uri: &jsonschema::Uri<String>,
-                ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
-                    match uri.scheme().as_str() {
-                        "http" | "https" => {
-                            return Ok(
-                                ureq::get(uri.as_str())
-                                    .call()
-                                    .map_err(
-                                        |e| format!("Error sending request for external resource at [{}]: {}", uri, e),
-                                    )?
-                                    .body_mut()
-                                    .read_json()
-                                    .map_err(
-                                        |e| format!(
-                                            "Error reading JSON from external resource response at [{}]: {}",
-                                            uri,
-                                            e
-                                        ),
-                                    )?,
-                            );
-                        },
-                        "file" | "" => {
-                            let path = self.working_directory.join(uri.path().as_str());
-                            return Ok(
-                                serde_json::from_slice(
-                                    &std::fs::read(
-                                        &path,
-                                    ).map_err(|e| format!("Error reading external resource at [{:?}]: {}", path, e))?,
-                                )?,
-                            );
-                        },
-                        scheme => {
-                            return Err(
-                                std::io::Error::other(format!("Unimplemented resource url scheme: {}", scheme)).into(),
-                            );
-                        },
-                    }
-                }
-            }
-
-            let validator =
-                Validator::options().with_retriever(MyRetriever { working_directory: match &args.source.source {
-                    aargvark::traits_impls::Source::Stdin => current_dir().map_err(
-                        |e| format!(
-                            "No file source to root relative paths and couldn't determine working directory from executable working directory: {}",
-                            e
-                        ),
-                    )?,
-                    aargvark::traits_impls::Source::File(v) => v.clone(),
-                } }).build(&schema).map_err(|e| format!("Error interpreting JSON Schema as JSON Schema: {}", e))?;
-            if let Err(e) = validator.validate(&source.into()) {
-                eprintln!("{}", e);
-                exit(1);
-            }
-        },
     }
     return Ok(());
 }
