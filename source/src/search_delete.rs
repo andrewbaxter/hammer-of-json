@@ -3,6 +3,7 @@ use {
         supervalue::Supervalue,
         utils::{
             search,
+            SearchKeyRes,
             SearchRes,
         },
     },
@@ -19,6 +20,10 @@ pub fn search_delete(source: &mut Supervalue, needle: &Supervalue) -> usize {
         &mut || {
             replacements.set(replacements.get() + 1);
             return SearchRes::Delete;
+        },
+        &mut || {
+            replacements.set(replacements.get() + 1);
+            return SearchKeyRes::Delete;
         },
         &mut || {
             replacements.set(replacements.get() + 1);

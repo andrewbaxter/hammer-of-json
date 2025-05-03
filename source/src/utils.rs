@@ -121,11 +121,17 @@ pub enum SearchRes {
     Delete,
 }
 
+pub enum SearchKeyRes {
+    Replace(String),
+    Delete,
+}
+
 pub fn search(
     root: bool,
     at: &mut Supervalue,
     needle: &Supervalue,
     handle_end_found_in_obj: &mut impl FnMut() -> SearchRes,
+    handle_end_found_in_key: &mut impl FnMut() -> SearchKeyRes,
     handle_end_found_in_arr: &mut impl FnMut() -> SearchRes,
     handle_end_found_at_root: impl FnOnce() -> SearchRes,
 ) {
@@ -159,6 +165,7 @@ pub fn search(
                             &mut values.value[i],
                             &*needle,
                             &mut *handle_end_found_in_obj,
+                            &mut *handle_end_found_in_key,
                             &mut *handle_end_found_in_arr,
                             nil_handle_end,
                         );
@@ -167,7 +174,21 @@ pub fn search(
                 }
             },
             Supervalue::Map(map) => {
-                for k in map.value.keys().cloned().collect::<Vec<_>>() {
+                'next_key: for mut k in map.value.keys().cloned().collect::<Vec<_>>() {
+                    if let Supervalue::String(needle_str) = needle {
+                        if &k == needle_str {
+                            let v = map.value.remove(&k).unwrap();
+                            match handle_end_found_in_key() {
+                                SearchKeyRes::Replace(k2) => {
+                                    map.value.insert(k2.clone(), v);
+                                    k = k2;
+                                },
+                                SearchKeyRes::Delete => {
+                                    continue 'next_key;
+                                },
+                            }
+                        }
+                    }
                     if map.value[&k] == *needle {
                         match handle_end_found_in_obj() {
                             SearchRes::Replace(value) => {
@@ -183,6 +204,7 @@ pub fn search(
                             &mut map.value.get_mut(&k).unwrap(),
                             &*needle,
                             &mut *handle_end_found_in_obj,
+                            &mut *handle_end_found_in_key,
                             &mut *handle_end_found_in_arr,
                             nil_handle_end,
                         );

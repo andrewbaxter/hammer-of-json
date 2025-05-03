@@ -3,9 +3,11 @@ use {
         supervalue::Supervalue,
         utils::{
             search,
+            SearchKeyRes,
             SearchRes,
         },
     },
+    flowcontrol::exenum,
     std::cell::Cell,
 };
 
@@ -19,6 +21,10 @@ pub fn search_set(source: &mut Supervalue, needle: &Supervalue, data: &Supervalu
         &mut || {
             replacements.set(replacements.get() + 1);
             return SearchRes::Replace(data.clone());
+        },
+        &mut || {
+            replacements.set(replacements.get() + 1);
+            return SearchKeyRes::Replace(exenum!(data, Supervalue:: String(v) => v.clone()).unwrap());
         },
         &mut || {
             replacements.set(replacements.get() + 1);
