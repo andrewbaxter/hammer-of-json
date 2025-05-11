@@ -16,6 +16,8 @@ impl AargvarkFromStr for DataPath {
             );
         } else if let Some(s) = s.strip_prefix(".") {
             return Ok(DataPath(s.split(".").map(|x| x.to_string()).collect::<Vec<_>>()));
+        } else if s == "" {
+            return Ok(DataPath(vec![]));
         } else {
             return Err(format!("Paths must start with a [.]"));
         }
