@@ -4,12 +4,20 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aargvark = { version = "0.8", features = ["serde_json", "serde_yaml", "serde_toml"] }
+aargvark = { version = "0.8", features = [
+    "serde_json",
+    "serde_yaml",
+    "serde_toml",
+] }
 flowcontrol = "0.2"
+jsonc-to-json = "0.1"
 jsonschema = "0.29"
 samevariant = "0.0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 serde_yaml = "0.9"
 toml = "0.8"
-ureq = { version = "3.0.8", features = ["json"] }
+ureq = { version = "3", features = ["json"] }
+
+[lints.clippy]
+all = "allow"

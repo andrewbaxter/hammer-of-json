@@ -10,6 +10,7 @@ use {
         exenum,
         shed,
     },
+    jsonc_to_json::jsonc_to_json,
     samevariant::samevariant,
     std::collections::HashMap,
 };
@@ -326,6 +327,13 @@ impl AargvarkFromStr for AargSupervalue {
                 value: t.value.into(),
                 source: t.source,
             });
+        } else if let Some(path) = s.strip_prefix("fjc:") {
+            let t = AargvarkJson::<serde_json::Value>::from_str(&jsonc_to_json(path))?;
+            return Ok(AargSupervalue {
+                original_format: AargSupervalueOriginalFormat::Json,
+                value: t.value.into(),
+                source: t.source,
+            });
         } else if let Some(path) = s.strip_prefix("fy:") {
             let t = AargvarkYaml::<serde_yaml::Value>::from_str(path)?;
             return Ok(AargSupervalue {
@@ -377,29 +385,32 @@ impl AargvarkFromStr for AargSupervalue {
                 aargvark::help::HelpPatternElement::Variant(
                     vec![
                         aargvark::help::HelpPattern(
-                            vec![aargvark::help::HelpPatternElement::Type("s:STRING".to_string())],
-                        ),
-                        aargvark::help::HelpPattern(
-                            vec![aargvark::help::HelpPatternElement::Type("fs:PATH".to_string())],
+                            vec![aargvark::help::HelpPatternElement::Type("JSON".to_string())],
                         ),
                         aargvark::help::HelpPattern(
                             vec![aargvark::help::HelpPatternElement::Type("f:PATH".to_string())],
                         ),
                         aargvark::help::HelpPattern(
-                            vec![aargvark::help::HelpPatternElement::Type("fy:PATH".to_string())],
+                            vec![aargvark::help::HelpPatternElement::Type("s:STRING".to_string())],
                         ),
                         aargvark::help::HelpPattern(
-                            vec![aargvark::help::HelpPatternElement::Type("ft:PTAH".to_string())],
+                            vec![aargvark::help::HelpPatternElement::Type("fjc:PATH".to_string())],
+                        ),
+                        aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("fs:PATH".to_string())],
                         ),
                         aargvark::help::HelpPattern(
                             vec![aargvark::help::HelpPatternElement::Type("y:YAML".to_string())],
                         ),
                         aargvark::help::HelpPattern(
+                            vec![aargvark::help::HelpPatternElement::Type("fy:PATH".to_string())],
+                        ),
+                        aargvark::help::HelpPattern(
                             vec![aargvark::help::HelpPatternElement::Type("t:TOML".to_string())],
                         ),
                         aargvark::help::HelpPattern(
-                            vec![aargvark::help::HelpPatternElement::Type("JSON".to_string())],
-                        )
+                            vec![aargvark::help::HelpPatternElement::Type("ft:PATH".to_string())],
+                        ),
                     ],
                 )
             ],

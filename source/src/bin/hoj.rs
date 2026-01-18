@@ -124,13 +124,13 @@ struct ValidateJsonSchemaCommand {
 #[derive(Aargvark)]
 #[vark(break_help)]
 enum Command {
-    /// Get the subtree at a path, outputting the subtree
+    /// Output just the subtree at a path
     Get(GetCommand),
-    /// Replace/insert a subtree at a path, outputting the modified data
+    /// Replace/insert a subtree at a path
     Set(SetCommand),
-    /// Remove the subtrees at paths, returning the remaining data
+    /// Remove the subtrees at paths
     Delete(DeleteCommand),
-    /// Remove the subtrees at paths, returning just the removed data
+    /// Remove everything but the subtrees at paths
     Keep(KeepCommand),
     /// Search for matching values and replace them with a new value
     SearchSet(SearchSetCommand),
@@ -142,10 +142,11 @@ enum Command {
     /// Return the tree composed of elements not present in any of these other trees
     Subtract(SubtractCommand),
     /// Add the data in each file, sequentually. Objects fields are recursed, while all
-    /// other values are replaced
+    /// other values are replaced atomically
     Merge(MergeCommand),
     /// Validate a file against a schema, either internal (via a root `"$schema"` key)
-    /// or external
+    /// or external. Doesn't change the input, but exits with an error if validation
+    /// fails.
     ValidateJsonSchema(ValidateJsonSchemaCommand),
 }
 

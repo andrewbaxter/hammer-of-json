@@ -110,6 +110,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "any-lexer"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8c5d31d0f7572b6c4e9bc8430be7be02dfd196b114db010d1a60d897aab1611"
+dependencies = [
+ "text-scanner",
+]
+
+[[package]]
 name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -212,6 +221,12 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "char-ranges"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21eb25e26d7f0447e5334df6cd8800bb1b97512dc0b7af6867123ffe76cfebe6"
 
 [[package]]
 name = "chrono"
@@ -614,6 +629,7 @@ version = "0.1.0"
 dependencies = [
  "aargvark",
  "flowcontrol",
+ "jsonc-to-json",
  "jsonschema",
  "samevariant",
  "serde",
@@ -905,6 +921,15 @@ checksum = "1cfaf33c695fc6e08064efbc1f72ec937429614f25eef83af942d0e227c3a28f"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "jsonc-to-json"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1eeb1c47c1ee0d119db2a9bf44e3c7cc4c2671584441a14e56e87568a72215d8"
+dependencies = [
+ "any-lexer",
 ]
 
 [[package]]
@@ -1621,6 +1646,15 @@ checksum = "5352447f921fda68cf61b4101566c0bdb5104eff6804d0678e5227580ab6a4e9"
 dependencies = [
  "rustix",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "text-scanner"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6aab806faa4214a5370a1d26efa1762aef0863c9cee3b187bfe4815c7db66956"
+dependencies = [
+ "char-ranges",
 ]
 
 [[package]]
