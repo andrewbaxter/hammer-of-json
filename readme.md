@@ -83,6 +83,10 @@ hoj f:fdap.json
 
 to just format it.
 
+# Installation
+
+Clone this repo and do `cargo build --release`. This will make a binary called `hoj` in `./target/release`.
+
 # Conventions
 
 There are two main data types used in arguments: _paths_ and _values_.
