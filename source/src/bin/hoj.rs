@@ -1,7 +1,7 @@
 use {
     aargvark::{
-        vark,
         Aargvark,
+        vark,
     },
     flowcontrol::superif,
     hammer_of_json::{
@@ -22,6 +22,7 @@ use {
         supervalue_path::DataPath,
     },
     jsonschema::Validator,
+    serde_json::json,
     std::{
         env::current_dir,
         fs::write,
@@ -124,25 +125,29 @@ struct ValidateJsonSchemaCommand {
 #[derive(Aargvark)]
 #[vark(break_help)]
 enum Command {
-    /// Output just the subtree at a path
+    /// Output just the subtree at a path.
     Get(GetCommand),
-    /// Replace/insert a subtree at a path
+    /// Replace/insert a subtree at a path.
     Set(SetCommand),
-    /// Remove the subtrees at paths
+    /// Remove the subtrees at paths. This will remove the key from the parent map or
+    /// element from the parent array shifting later elements earlier.
     Delete(DeleteCommand),
-    /// Remove everything but the subtrees at paths
+    /// Remove everything but the subtrees at paths.
     Keep(KeepCommand),
-    /// Search for matching values and replace them with a new value
+    /// Search for matching values and replace them with a new value. If the value is
+    /// found in a map, the key that holds it will be removed with the value. If it's
+    /// found in an array, the array element will be removed shifting later elements
+    /// earlier.
     SearchSet(SearchSetCommand),
-    /// Search for matching values and delete them
+    /// Search for matching values and delete them.
     SearchDelete(SearchDeleteCommand),
     /// Return the tree common to all trees. I.e. for `{"a": 1, "b": 2}` and
-    /// `{"b": 2, "c": 3}` return `{"b": 2}`
+    /// `{"b": 2, "c": 3}` return `{"b": 2}`.
     Intersect(IntersectCommand),
-    /// Return the tree composed of elements not present in any of these other trees
+    /// Return the tree composed of elements not present in any of these other trees.
     Subtract(SubtractCommand),
     /// Add the data in each file, sequentually. Objects fields are recursed, while all
-    /// other values are replaced atomically
+    /// other values are replaced atomically.
     Merge(MergeCommand),
     /// Validate a file against a schema, either internal (via a root `"$schema"` key)
     /// or external. Doesn't change the input, but exits with an error if validation
@@ -247,7 +252,7 @@ fn main1() -> Result<(), String> {
                 let schema: serde_json::Value = if let Some(schema) = args.external {
                     schema.value.into()
                 } else if let Some(Supervalue::String(addr)) =
-                    get(&mut at, &DataPath(vec!["$schema".to_string()]), true)? {
+                    get(&mut at, &DataPath(vec![json!("$schema")]), true)? {
                     if addr.starts_with("https://") || addr.starts_with("http:///") {
                         ureq::get(addr.as_str())
                             .call()
@@ -395,7 +400,10 @@ fn main1() -> Result<(), String> {
                 serde_json::to_string(&<Supervalue as Into::<serde_json::Value>>::into(at)).unwrap()
             },
             Format::PrettyJson => {
-                serde_json::to_string_pretty(&<Supervalue as Into::<serde_json::Value>>::into(at)).unwrap()
+                format!(
+                    "{}\n",
+                    serde_json::to_string_pretty(&<Supervalue as Into::<serde_json::Value>>::into(at)).unwrap()
+                )
             },
             Format::Toml => {
                 toml::to_string_pretty(&<Supervalue as Into::<toml::Value>>::into(at)).unwrap()

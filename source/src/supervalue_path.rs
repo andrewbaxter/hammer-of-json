@@ -2,7 +2,7 @@ use {
     aargvark::traits_impls::AargvarkFromStr,
 };
 
-pub struct DataPath(pub Vec<String>);
+pub struct DataPath(pub Vec<serde_json::Value>);
 
 impl AargvarkFromStr for DataPath {
     fn from_str(s: &str) -> Result<Self, String> {
@@ -15,7 +15,9 @@ impl AargvarkFromStr for DataPath {
                 ),
             );
         } else if let Some(s) = s.strip_prefix(".") {
-            return Ok(DataPath(s.split(".").map(|x| x.to_string()).collect::<Vec<_>>()));
+            return Ok(
+                DataPath(s.split(".").map(|x| serde_json::Value::String(x.to_string())).collect::<Vec<_>>()),
+            );
         } else if s == "" {
             return Ok(DataPath(vec![]));
         } else {
@@ -24,8 +26,6 @@ impl AargvarkFromStr for DataPath {
     }
 
     fn build_help_pattern(_state: &mut aargvark::help::HelpState) -> aargvark::help::HelpPattern {
-        return aargvark::help::HelpPattern(
-            vec![aargvark::help::HelpPatternElement::Type(format!(".PATH.TO.DATA"))],
-        );
+        return aargvark::help::HelpPattern(vec![aargvark::help::HelpPatternElement::Type("PATH".to_string())]);
     }
 }

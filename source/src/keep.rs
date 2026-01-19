@@ -5,11 +5,13 @@ use {
         supervalue::Supervalue,
         supervalue_path::DataPath,
         utils::{
-            at_path,
             AtPathEarlyRes,
             AtPathEndRes,
+            AtPathResVec,
+            at_path,
         },
     },
+    std::cell::RefCell,
 };
 
 pub fn keep(
@@ -18,6 +20,7 @@ pub fn keep(
     path: &DataPath,
     missing_ok: bool,
 ) -> Result<(), String> {
+    let out = RefCell::new(out);
     at_path(
         //. .
         &path,
@@ -25,6 +28,10 @@ pub fn keep(
         || match missing_ok {
             true => AtPathEarlyRes::Return(()),
             false => AtPathEarlyRes::Err,
+        },
+        || match missing_ok {
+            true => AtPathResVec::Return(()),
+            false => AtPathResVec::Err,
         },
         || match missing_ok {
             true => AtPathEarlyRes::Return(()),
@@ -37,7 +44,17 @@ pub fn keep(
         |parent, key| {
             let mut temp = Supervalue::Map(Default::default());
             set(&mut temp, &path, &parent.value.remove(key).unwrap(), missing_ok)?;
-            merge(out.get_or_insert_with(|| Supervalue::Map(Default::default())), temp);
+            merge(out.borrow_mut().get_or_insert_with(|| Supervalue::Map(Default::default())), temp);
+            return Ok(());
+        },
+        |_, _| match missing_ok {
+            true => AtPathResVec::Return(()),
+            false => AtPathResVec::Err,
+        },
+        |parent, key| {
+            let mut temp = Supervalue::Map(Default::default());
+            set(&mut temp, &path, &parent.value.remove(key), false)?;
+            merge(out.borrow_mut().get_or_insert_with(|| Supervalue::Map(Default::default())), temp);
             return Ok(());
         },
         |_root| {
@@ -76,12 +93,7 @@ mod test {
                 "e": true,
             }
         })));
-        keep(
-            &mut source,
-            &mut out,
-            &DataPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]),
-            true,
-        ).unwrap();
+        keep(&mut source, &mut out, &DataPath(vec![json!("a"), json!("b"), json!("c")]), true).unwrap();
         assert_eq!(out.unwrap(), Supervalue::from(json!({
             "a": {
                 "b": {

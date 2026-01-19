@@ -3,9 +3,11 @@ use {
         supervalue::{
             Supervalue,
             SupervalueMap,
+            SupervalueVec,
         },
         supervalue_path::DataPath,
     },
+    std::collections::hash_map::Entry,
 };
 
 pub enum AtPathEarlyRes<T> {
@@ -20,15 +22,23 @@ pub enum AtPathEndRes<T> {
     Err,
 }
 
+pub enum AtPathResVec<T> {
+    Return(T),
+    Err,
+}
+
 pub fn at_path<
     T,
 >(
     path: &DataPath,
     mut at: &mut Supervalue,
     mut handle_early_missing: impl FnMut() -> AtPathEarlyRes<T>,
+    mut handle_early_missing_vec: impl FnMut() -> AtPathResVec<T>,
     mut handle_early_untraversible: impl FnMut() -> AtPathEarlyRes<T>,
     handle_end_missing: impl FnOnce(&mut SupervalueMap, &str) -> AtPathEndRes<T>,
     handle_end_found: impl FnOnce(&mut SupervalueMap, &str) -> Result<T, String>,
+    handle_end_missing_vec: impl FnOnce(&mut SupervalueVec, usize) -> AtPathResVec<T>,
+    handle_end_found_vec: impl FnOnce(&mut SupervalueVec, usize) -> Result<T, String>,
     handle_end_root: impl FnOnce(&mut Supervalue) -> Result<T, String>,
 ) -> Result<T, String> {
     if path.0.is_empty() {
@@ -38,6 +48,9 @@ pub fn at_path<
             let last = depth == path.0.len() - 1;
             match at {
                 Supervalue::Map(_) => {
+                    // nop
+                },
+                Supervalue::Vec(_) => {
                     // nop
                 },
                 _ => {
@@ -59,58 +72,142 @@ pub fn at_path<
                     }
                 },
             }
-            let map = match at {
-                Supervalue::Map(map) => map,
+            match at {
+                Supervalue::Map(map) => {
+                    let seg = match seg {
+                        serde_json::Value::String(s) => s,
+                        _ => {
+                            return Err(
+                                format!(
+                                    "At a map, but path contains non-string segment {} [{}]",
+                                    depth,
+                                    serde_json::to_string(seg).unwrap()
+                                ),
+                            );
+                        },
+                    };
+                    if last {
+                        if map.value.contains_key(seg) {
+                            return handle_end_found(map, seg);
+                        } else {
+                            match handle_end_missing(map, seg) {
+                                AtPathEndRes::Return(v) => {
+                                    return Ok(v);
+                                },
+                                AtPathEndRes::SetAndReturn(v, ret) => {
+                                    map.value.insert(seg.to_string(), v);
+                                    return Ok(ret);
+                                },
+                                AtPathEndRes::Err => {
+                                    return Err(
+                                        format!(
+                                            "Encountered object value at {:?} but the key [{:?}] is missing",
+                                            &path.0[0 .. depth],
+                                            seg
+                                        ),
+                                    );
+                                },
+                            }
+                        }
+                    } else {
+                        let v = match map.value.entry(seg.clone()) {
+                            Entry::Occupied(v) => v.into_mut(),
+                            Entry::Vacant(en) => match handle_early_missing() {
+                                AtPathEarlyRes::Return(v) => {
+                                    return Ok(v);
+                                },
+                                AtPathEarlyRes::SetAndContinue => {
+                                    en.insert(Supervalue::Map(Default::default()))
+                                },
+                                AtPathEarlyRes::Err => {
+                                    return Err(
+                                        format!(
+                                            "Encountered object value at {:?} but the key [{:?}] is missing",
+                                            &path.0[0 .. depth],
+                                            seg
+                                        ),
+                                    );
+                                },
+                            },
+                        };
+                        at = v;
+                    }
+                },
+                Supervalue::Vec(ve) => {
+                    let seg = match seg {
+                        serde_json::Value::String(s) => match str::parse::<usize>(s) {
+                            Ok(seg) => seg,
+                            Err(e) => {
+                                return Err(
+                                    format!(
+                                        "At an array, but path contains non-numberlike segment {} [{}]: {}",
+                                        depth,
+                                        serde_json::to_string(seg).unwrap(),
+                                        e
+                                    ),
+                                );
+                            },
+                        },
+                        serde_json::Value::Number(n) => {
+                            let n = n.as_f64().unwrap();
+                            if n < 0. {
+                                return Err(
+                                    format!("At an array, but path contains negative index {} [{}]", depth, n),
+                                );
+                            }
+                            n as usize
+                        },
+                        _ => {
+                            return Err(
+                                format!(
+                                    "At a map, but path contains non-string segment {} [{}]",
+                                    depth,
+                                    serde_json::to_string(seg).unwrap()
+                                ),
+                            );
+                        },
+                    };
+                    if last {
+                        if seg < ve.value.len() {
+                            return handle_end_found_vec(ve, seg);
+                        } else {
+                            match handle_end_missing_vec(ve, seg) {
+                                AtPathResVec::Return(v) => {
+                                    return Ok(v);
+                                },
+                                AtPathResVec::Err => {
+                                    return Err(
+                                        format!(
+                                            "Encountered array value at {:?} but the key [{:?}] is out of bounds",
+                                            &path.0[0 .. depth],
+                                            seg
+                                        ),
+                                    );
+                                },
+                            }
+                        }
+                    } else {
+                        let Some(v) = ve.value.get_mut(seg) else {
+                            match handle_early_missing_vec() {
+                                AtPathResVec::Return(v) => {
+                                    return Ok(v);
+                                },
+                                AtPathResVec::Err => {
+                                    return Err(
+                                        format!(
+                                            "Encountered object value at {:?} but the key [{:?}] is missing",
+                                            &path.0[0 .. depth],
+                                            seg
+                                        ),
+                                    );
+                                },
+                            }
+                        };
+                        at = v;
+                    }
+                },
                 _ => unreachable!(),
             };
-            if last {
-                if map.value.contains_key(seg) {
-                    return handle_end_found(map, seg);
-                } else {
-                    match handle_end_missing(map, seg) {
-                        AtPathEndRes::Return(v) => {
-                            return Ok(v);
-                        },
-                        AtPathEndRes::SetAndReturn(v, ret) => {
-                            map.value.insert(seg.to_string(), v);
-                            return Ok(ret);
-                        },
-                        AtPathEndRes::Err => {
-                            return Err(
-                                format!(
-                                    "Encountered object value at {:?} but the key [{:?}] is missing",
-                                    &path.0[0 .. depth],
-                                    seg
-                                ),
-                            );
-                        },
-                    }
-                }
-            } else {
-                if !map.value.contains_key(seg) {
-                    match handle_early_missing() {
-                        AtPathEarlyRes::Return(v) => {
-                            return Ok(v);
-                        },
-                        AtPathEarlyRes::SetAndContinue => {
-                            map.value.insert(seg.clone(), Supervalue::Map(Default::default()));
-                        },
-                        AtPathEarlyRes::Err => {
-                            return Err(
-                                format!(
-                                    "Encountered object value at {:?} but the key [{:?}] is missing",
-                                    &path.0[0 .. depth],
-                                    seg
-                                ),
-                            );
-                        },
-                    }
-                }
-                let Some(v) = map.value.get_mut(seg) else {
-                    unreachable!();
-                };
-                at = v;
-            }
         }
     }
     unreachable!();

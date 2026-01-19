@@ -1,10 +1,10 @@
-<img src="hammer.svg" align="left">
-
 # Hammer of JSON
 
-Hammer of JSON (`hoj`) is a collection of tools for manipulating json documents. It makes it easy to do things like merge files and template JSON.
+<img src="hammer.svg" align="left">
 
-While it's named hammer of _json_, it is also a hammel of _YAML_ and a cudgel of _toml_ (and [jsonc](https://jsonc.org/)).
+Hammer of JSON (`hoj`) is a collection of tools for manipulating JSON documents. It makes it easy to do things like merge files and template JSON.
+
+While it's named hammer of _JSON_, it is also a hammel of _YAML_ and a cudgel of _TOML_ (and [JSONC](https://jsonc.org/)).
 
 The command line help provides the best overview:
 
@@ -15,37 +15,39 @@ Usage: hoj SOURCE COMMANDS [ ...FLAGS]
     This is a collection of tools for common json (and yaml, and toml) document
     manipulations.
 
- SOURCE: <JSON> | <f:PATH> | <s:STRING> |   Source JSON file
- <fjc:PATH> | <fs:PATH> | <y:YAML> |
- <fy:PATH> | <t:TOML> | <ft:PATH>
+    SOURCE: <VALUE>          Source JSON file
     COMMANDS: COMMAND[ ...]
-    [--format FORMAT]                       Output format, defaults to `pretty`
-    [-f FORMAT]                             (synonym for `--format`)
-    [--in-place]                            Modify source in-place
-    [-i]                                    (synonym for `--in-place`)
-    [--unquote]                             If the result is a string value,
-                                            output as an unquoted (non-json)
-                                            string
-    [-u]                                    (synonym for `--unquote`)
+    [--format FORMAT]        Output format, defaults to `pretty`
+    [-f FORMAT]              (synonym for `--format`)
+    [--in-place]             Modify source in-place
+    [-i]                     (synonym for `--in-place`)
+    [--unquote]              If the result is a string value, output as an
+                             unquoted (non-json) string
+    [-u]                     (synonym for `--unquote`)
 
 COMMAND: get | set | delete | keep | search-set | search-delete | intersect | su
 btract | merge | validate-json-schema
 
-    get ...                   Output just the subtree at a path
-    set ...                   Replace/insert a subtree at a path
-    delete ...                Remove the subtrees at paths
-    keep ...                  Remove everything but the subtrees at paths
+    get ...                   Output just the subtree at a path.
+    set ...                   Replace/insert a subtree at a path.
+    delete ...                Remove the subtrees at paths. This will remove
+                              the key from the parent map or element from the
+                              parent array shifting later elements earlier.
+    keep ...                  Remove everything but the subtrees at paths.
     search-set ...            Search for matching values and replace them with
-                              a new value
-    search-delete ...         Search for matching values and delete them
+                              a new value. If the value is found in a map, the
+                              key that holds it will be removed with the value.
+                              If it's found in an array, the array element will
+                              be removed shifting later elements earlier.
+    search-delete ...         Search for matching values and delete them.
     intersect ...             Return the tree common to all trees. I.e. for
                               `{"a": 1, "b": 2}` and `{"b": 2, "c": 3}` return
-                              `{"b": 2}`
+                              `{"b": 2}`.
     subtract ...              Return the tree composed of elements not present
-                              in any of these other trees
+                              in any of these other trees.
     merge ...                 Add the data in each file, sequentually. Objects
                               fields are recursed, while all other values are
-                              replaced atomically
+                              replaced atomically.
     validate-json-schema ...  Validate a file against a schema, either internal
                               (via a root `"$schema"` key) or external. Doesn't
                               change the input, but exits with an error if
@@ -73,29 +75,39 @@ hoj f:fdap.json \
 
 In-place modification and referencing external files in `validate-json-schema` are done relative to the source file path and pipelining preserves this context through all the commands.
 
+You can also do
+
+```
+hoj f:fdap.json
+```
+
+to just format it.
+
 # Conventions
 
 There are two main data types used in arguments: _paths_ and _values_.
 
-## Paths
+## Paths (to values in the data)
 
 A path can be:
 
 - A number of `.` prefixed segments, like `.a.b.c`. These don't take escapes, so only simple string (no internal `.`'s) segments are allowed.
 
-- A json array of strings: `["a", "b", "c"]`
+- A JSON array of strings and numbers: `["a", "b", "c"]`
 
-These are unambiguous - `hoj` automatically detects which type of path it is.
+These are unambiguous - `hoj` automatically detects which type of path it is by the first letter.
 
-This path addresses corresponds to the value at key `a`, then the value at key `b` within that, and then the value at key `c` within that.
+This path addresses corresponds to the value at key `a`, then the value at key `b` within that, and then the value at key `c` within that. Numbers are used for array indices (i.e. `.0` would return the 0th element of the root array).
 
 ## Values
 
 A value can be:
 
-- Inline json
+- Inline JSON, like `'"a string"'` (quoted for shell) or `6`
 
-- A path prefixed by `f:` (like `f:./a.json`) referring to the contents of a json file or `fjc:` for jsonc ([JSON with comments](https://jsonc.org/))
+- A path prefixed by `f:` (like `f:./a.json`) referring to the contents of a JSON file
+
+- A path prefixed by `fjc:` (like `fjc:./a.jsonc`) referring to the contents of a ([JSONC](https://jsonc.org/)) file
 
 - A string, prefixed by `s:` (avoiding the need for nested quotes)
 
@@ -123,11 +135,11 @@ There are a couple reasons for this:
 
 - The implementation of things like merges are ambiguous and have many potential incompatible implementations
 
-- There's no good way to represent a partial array. Unlike maps you may need to have the right array dimensions, but putting any element in the empty spaces could end up replacing legitimate values during the operation
+- There's no unambiguous way to represent a partial array (e.g. for merges, or the result of intersections), without significantly complicating other syntax.
 
-Generally speaking, in any JSON document the array as it is is typically in a valid configuration, so either entirely keeping or entirely deleting the array is often the safest choice.
+Generally speaking, when you have two arrays, both are valid, so choosing one or the other atomically is often safer than trying to intelligently merge them.
 
-Where the implementation is unambiguous these tools attempt to support arrays.
+Where the implementation is unambiguous these tools do attempt to support arrays.
 
 If you find a situation where you need to manipulate arrays, try:
 

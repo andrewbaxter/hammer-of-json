@@ -3,9 +3,10 @@ use {
         supervalue::Supervalue,
         supervalue_path::DataPath,
         utils::{
-            at_path,
             AtPathEarlyRes,
             AtPathEndRes,
+            AtPathResVec,
+            at_path,
         },
     },
 };
@@ -21,12 +22,23 @@ pub fn get(root: &mut Supervalue, path: &DataPath, missing_ok: bool) -> Result<O
             false => AtPathEarlyRes::Err,
         },
         || match missing_ok {
+            true => AtPathResVec::Return(None),
+            false => AtPathResVec::Err,
+        },
+        || match missing_ok {
             true => AtPathEarlyRes::Return(None),
             false => AtPathEarlyRes::Err,
         },
         |_, _| match missing_ok {
             true => AtPathEndRes::Return(None),
             false => AtPathEndRes::Err,
+        },
+        |parent, key| {
+            return Ok(Some(parent.value.get(key).unwrap().clone()));
+        },
+        |_, _| match missing_ok {
+            true => AtPathResVec::Return(None),
+            false => AtPathResVec::Err,
         },
         |parent, key| {
             return Ok(Some(parent.value.get(key).unwrap().clone()));
@@ -60,10 +72,37 @@ mod test {
             },
             "f": false,
         }));
+        let found = get(&mut source, &DataPath(vec![json!("a"), json!("b"), json!("c")]), false).unwrap().unwrap();
+        assert_eq!(found, Supervalue::from(json!(4)));
+    }
+
+    #[test]
+    fn get_in_array() {
+        let mut source = Supervalue::from(json!({
+            "a": {
+                "b":[4, [5, "hello"]],
+                "e": true,
+            },
+            "f": false,
+        }));
         let found =
-            get(&mut source, &DataPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]), true)
+            get(&mut source, &DataPath(vec![json!("a"), json!("b"), json!(1), json!(0)]), false).unwrap().unwrap();
+        assert_eq!(found, Supervalue::from(json!(5)));
+    }
+
+    #[test]
+    fn get_in_array_with_str_index() {
+        let mut source = Supervalue::from(json!({
+            "a": {
+                "b":[4, [5, "hello"]],
+                "e": true,
+            },
+            "f": false,
+        }));
+        let found =
+            get(&mut source, &DataPath(vec![json!("a"), json!("b"), json!("1"), json!("0")]), false)
                 .unwrap()
                 .unwrap();
-        assert_eq!(found, Supervalue::from(json!(4)));
+        assert_eq!(found, Supervalue::from(json!(5)));
     }
 }

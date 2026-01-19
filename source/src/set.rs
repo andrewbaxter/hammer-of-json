@@ -3,9 +3,10 @@ use {
         supervalue::Supervalue,
         supervalue_path::DataPath,
         utils::{
-            at_path,
             AtPathEarlyRes,
             AtPathEndRes,
+            AtPathResVec,
+            at_path,
         },
     },
 };
@@ -19,6 +20,7 @@ pub fn set(dest: &mut Supervalue, path: &DataPath, value: &Supervalue, missing_o
             true => AtPathEarlyRes::SetAndContinue,
             false => AtPathEarlyRes::Err,
         },
+        || AtPathResVec::Err,
         || match missing_ok {
             true => AtPathEarlyRes::SetAndContinue,
             false => AtPathEarlyRes::Err,
@@ -29,6 +31,11 @@ pub fn set(dest: &mut Supervalue, path: &DataPath, value: &Supervalue, missing_o
         },
         |parent, key| {
             parent.value.insert(key.to_string(), value.clone());
+            return Ok(());
+        },
+        |_, _| AtPathResVec::Err,
+        |parent, key| {
+            parent.value[key] = value.clone();
             return Ok(());
         },
         |root| {
@@ -63,7 +70,7 @@ mod test {
         }));
         set(
             &mut source,
-            &DataPath(vec!["a".to_string(), "b".to_string(), "c".to_string()]),
+            &DataPath(vec![json!("a"), json!("b"), json!("c")]),
             &Supervalue::from(json!("also_hello")),
             true,
         ).unwrap();
@@ -73,6 +80,30 @@ mod test {
                     "c": "also_hello",
                     "d": "hello",
                 },
+                "e": true,
+            },
+            "f": false,
+        })));
+    }
+
+    #[test]
+    fn set_in_array() {
+        let mut source = Supervalue::from(json!({
+            "a": {
+                "b":[4, [5, "hello"],],
+                "e": true,
+            },
+            "f": false,
+        }));
+        set(
+            &mut source,
+            &DataPath(vec![json!("a"), json!("b"), json!(1), json!(1)]),
+            &Supervalue::from(json!("also_hello")),
+            true,
+        ).unwrap();
+        assert_eq!(source, Supervalue::from(json!({
+            "a": {
+                "b":[4, [5, "also_hello"]],
                 "e": true,
             },
             "f": false,
