@@ -321,13 +321,6 @@ impl AargvarkFromStr for AargSupervalue {
                 source: t.source,
             });
         } else if let Some(path) = s.strip_prefix("f:") {
-            let t = AargvarkJson::<serde_json::Value>::from_str(path)?;
-            return Ok(AargSupervalue {
-                original_format: AargSupervalueOriginalFormat::Json,
-                value: t.value.into(),
-                source: t.source,
-            });
-        } else if let Some(path) = s.strip_prefix("fjc:") {
             let t = AargvarkJson::<serde_json::Value>::from_str(&jsonc_to_json(path))?;
             return Ok(AargSupervalue {
                 original_format: AargSupervalueOriginalFormat::Json,
@@ -369,7 +362,7 @@ impl AargvarkFromStr for AargSupervalue {
         } else {
             let data =
                 serde_json::from_str::<serde_json::Value>(
-                    &s,
+                    &jsonc_to_json(s),
                 ).map_err(|e| format!("Inline json [{}] is invalid: {}", s, e))?;
             return Ok(AargSupervalue {
                 original_format: AargSupervalueOriginalFormat::Json,

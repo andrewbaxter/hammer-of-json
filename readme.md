@@ -4,7 +4,7 @@
 
 Hammer of JSON (`hoj`) is a collection of tools for manipulating JSON documents. It makes it easy to do things like merge files and template JSON.
 
-While it's named hammer of _JSON_, it is also a hammel of _YAML_ and a cudgel of _TOML_ (and [JSONC](https://jsonc.org/)).
+While it's named hammer of _JSON_(/[JSONC](https://jsonc.org/)), it is also a hammel of _YAML_ and a cudgel of _TOML_.
 
 The command line help provides the best overview:
 
@@ -111,8 +111,6 @@ A value can be:
 
 - A path prefixed by `f:` (like `f:./a.json`) referring to the contents of a JSON file
 
-- A path prefixed by `fjc:` (like `fjc:./a.jsonc`) referring to the contents of a ([JSONC](https://jsonc.org/)) file
-
 - A string, prefixed by `s:` (avoiding the need for nested quotes)
 
 - A path prefixed by `fs:` (like `fs:./a.txt`) referring to the contents of a plain text file to be treated as a string
@@ -152,6 +150,12 @@ If you find a situation where you need to manipulate arrays, try:
 2. Using objects in your own data and implementing a post-processing step to convert the object back into an array.
 
 3. Duplicating the array - for instance, if you want to merge document A into B and replace one element of an array in B, copy the whole array in B into A and modify it there.
+
+## Jsonc
+
+Since JSONC is a superset of JSON, all JSON input is considered potential JSONC (i.e. you can use JSONC and JSON interchangably for input).
+
+Output is JSON, with comments and trailing commas removed.
 
 ## Taml, Yoml
 
