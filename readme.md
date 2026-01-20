@@ -81,7 +81,7 @@ You can also do
 hoj f:fdap.json
 ```
 
-to just format it.
+(no pipelines) to just format the input.
 
 # Installation
 
